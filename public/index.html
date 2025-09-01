@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File On Cloud</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
+        <h1>Files on Cloud</h1>
+    </div>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="section">
+            <h2>🔼 Upload File</h2>
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept="*" required>
+                    <div class="file-input" onclick="document.getElementById('fileInput').click()">
+                        <span class="upload-icon">📁</span>
+                        <span id="fileText">Click to select file (max 10MB)</span>
+                    </div>
+                </div>
+                
+                <input type="number" 
+                       id="uploadCode" 
+                       placeholder="Enter 5-digit code (optional - we'll generate one if empty)"
+                       min="10000" 
+                       max="99999">
+                
+                <button type="submit" id="uploadBtn">Upload File</button>
+            </form>
+            
+            <div class="loading" id="uploadLoading">
+                <div class="spinner"></div>
+                <p>Uploading...</p>
+            </div>
+            
+            <div id="uploadMessage"></div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="section">
+            <h2>🔽 Download File</h2>
+            <form id="downloadForm">
+                <input type="number" 
+                       id="downloadCode" 
+                       placeholder="Enter 5-digit code"
+                       min="10000" 
+                       max="99999" 
+                       required>
+                
+                <div class="button-group">
+                    <button type="button" id="infoBtn">Get File Info</button>
+                    <button type="submit" id="downloadBtn">Download File</button>
+                </div>
+            </form>
+            
+            <div class="loading" id="downloadLoading">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+            
+            <div id="downloadMessage"></div>
+            <div id="fileInfo"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <h3>📋 How to Use Files on Cloud</h3>
+            <ul>
+                <li><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 10MB). You can optionally provide a custom 5-digit code, or let me generate one for you.</li>
+                <li><strong>Share Code:</strong> After uploading, share the 5-digit code with others to allow them to download your file.</li>
+                <li><strong>Download Files:</strong> Enter the 5-digit code you received and click "Download File" to get the file instantly.</li>
+                <li><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size, and download count before downloading.</li>
+                <li><strong>Security:</strong> Files are temporarily stored and automatically deleted after a certain period for your privacy and security.</li>
+                <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</li>
+                <li><strong>More Features are on the way, stay connected!!!</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="container">
+            <h3>💻 Contact Developer</h3>
+            <div class="social-links">
+                <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank">
+                    <span><img src="linkedin.png" height=30px width=30px alt="linkedin"></span> LinkedIn
+                </a>
+                <a href="https://github.com/priyansh13-c" target="_blank">
+                    <span><img src="github.png" height=30px width=30px alt="github"></span> GitHub
+                </a>
+            </div>
+            <p>&copy; 2025 Files on Cloud. Made with ❤️</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:3000"; // backend server
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileText = document.getElementById('fileText');
+            
+            if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    fileText.innerHTML = '<span style="color: #f44336;">❌ File too large (max 10MB)</span>';
+                    e.target.value = '';
+                    return;
+                }
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileText.innerHTML = `<span style="color: #4caf50;">✅ ${file.name} (${sizeInMB} MB)</span>`;
+            } else {
+                fileText.innerHTML = 'Click to select file (max 10MB)';
+            }
+        });
+
+        // Upload form handling
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const codeInput = document.getElementById('uploadCode');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadLoading = document.getElementById('uploadLoading');
+            const uploadMessage = document.getElementById('uploadMessage');
+            
+            if (!fileInput.files[0]) {
+                showMessage(uploadMessage, 'Please select a file', 'error');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadLoading.style.display = 'block';
+            uploadMessage.innerHTML = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                if (codeInput.value) {
+                    formData.append('code', codeInput.value);
+                }
+
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(uploadMessage, `✅ ${result.message}`, 'success');
+                    fileInput.value = '';
+                    codeInput.value = '';
+                    document.getElementById('fileText').innerHTML = 'Click to select file (max 10MB)';
+                } else {
+                    showMessage(uploadMessage, `❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(uploadMessage, '❌ Upload failed. Please try again.', 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadLoading.style.display = 'none';
+            }
+        });
+
+        // Get file info
+        document.getElementById('infoBtn').addEventListener('click', async function() {
+            const code = document.getElementById('downloadCode').value;
+            const downloadLoading = document.getElementById('downloadLoading');
+            const downloadMessage = document.getElementById('downloadMessage');
+            const fileInfo = document.getElementById('fileInfo');
+            
+            if (!code || !/^\d{5}$/.test(code)) {
+                showMessage(downloadMessage, '❌ Please enter a valid 5-digit code', 'error');
+                return;
+            }
+
+            downloadLoading.style.display = 'block';
+            downloadMessage.innerHTML = '';
+            fileInfo.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/info/${code}`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    fileInfo.innerHTML = `
+                        <div class="file-info">
+                            <h3>📄 File Information</h3>
+                            <p><strong>Name:</strong> ${result.originalName}</p>
+                            <p><strong>Size:</strong> ${result.sizeFormatted}</p>
+                            <p><strong>Uploaded:</strong> ${new Date(result.uploadDate).toLocaleString()}</p>
+                            <p><strong>Downloads:</strong> ${result.downloadCount}</p>
+                        </div>
+                    `;
+                } else {
+                    showMessage(downloadMessage, `❌ ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(downloadMessage, '❌ Failed to get file info', 'error');
+            } finally {
+                downloadLoading.style.display = 'none';
+            }
+        });
+
+        // Download form handling
+        document.getElementById('downloadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const code = document.getElementById('downloadCode').value;
+            const downloadMessage = document.getElementById('downloadMessage');
+            
+            if (!code || !/^\d{5}$/.test(code)) {
+                showMessage(downloadMessage, '❌ Please enter a valid 5-digit code', 'error');
+                return;
+            }
+
+            // Direct download from backend
+            window.location.href = `${API_BASE}/api/download/${code}`;
+        });
+
+        function showMessage(element, message, type) {
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Add subtle page load animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach((section, index) => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(50px)';
+                setTimeout(() => {
+                    section.style.transition = 'all 0.6s ease';
+                    section.style.opacity = '1';
+                    section.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
