@@ -12,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 
 
 // Connect to MongoDB
-const mongoose = require("mongoose");
 
 mongoose.connect("mongodb+srv://priyanshkr138_db_user:2Lz13vwTfnGeFSUu@cluster0.nn2zrb2.mongodb.net/", {
   useNewUrlParser: true,
