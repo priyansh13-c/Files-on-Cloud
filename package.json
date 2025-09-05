@@ -2,15 +2,16 @@
   "name": "simple-file-share",
   "version": "1.0.0",
   "description": "Simple file sharing with 5-digit codes",
-  "main": "server.js",
+  "main": "backend/server.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "mongoose": "^7.8.7",
+    "mongoose": "^8.18.0",
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
