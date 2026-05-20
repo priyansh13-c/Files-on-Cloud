@@ -12,6 +12,7 @@
         <div class="auth-buttons">
             <button id="loginBtn" class="auth-btn">Login</button>
             <button id="signupBtn" class="auth-btn">Sign Up</button>
+            <button id="dashboardBtn" class="auth-btn" style="display: none;">Dashboard</button>
         </div>
         <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
         <h1>Files on Cloud</h1>
@@ -167,6 +168,7 @@
         const filePasswordInput = document.getElementById('filePassword');
         const expirationSelect = document.getElementById('expirationTime');
         const uploadBtn = document.getElementById('uploadBtn');
+        const dashboardBtn = document.getElementById('dashboardBtn');
         const uploadLoading = document.getElementById('uploadLoading');
         const uploadMessage = document.getElementById('uploadMessage');
         const resultSection = document.getElementById('resultSection');
@@ -224,13 +226,16 @@
 
         function updateUI() {
             if (currentUser) {
-                loginBtn.textContent = `Hi, ${currentUser.username}`;
+                loginBtn.textContent = `Hi, ${currentUser.username} (Logout)`;
                 loginBtn.onclick = logout;
                 signupBtn.style.display = 'none';
+                dashboardBtn.style.display = 'inline-block';
+                dashboardBtn.onclick = () => window.location.href = 'dashboard.html';
             } else {
                 loginBtn.textContent = 'Login';
                 loginBtn.onclick = () => window.location.href = 'auth.html?mode=login';
                 signupBtn.style.display = 'inline-block';
+                dashboardBtn.style.display = 'none';
             }
         }
 
