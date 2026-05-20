@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File On Cloud</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- Header -->
     <div class="header">
@@ -31,15 +33,10 @@
                     </div>
                 </div>
 
-                <input type="number"
-                       id="uploadCode"
-                       placeholder="Enter 5-digit code (optional - we'll generate one if empty)"
-                       min="10000"
-                       max="99999">
+                <input type="number" id="uploadCode"
+                    placeholder="Enter 5-digit code (optional - we'll generate one if empty)" min="10000" max="99999">
 
-                <input type="password"
-                       id="filePassword"
-                       placeholder="Password protect file (optional)">
+                <input type="password" id="filePassword" placeholder="Password protect file (optional)">
 
                 <select id="expirationTime">
                     <option value="24h">Expires in 24 hours</option>
@@ -60,57 +57,58 @@
         </div>
 
         <!-- Result Section -->
-        <div class="section" id="resultSection" style="display: none;">
-            <h2>File Uploaded Successfully</h2>
-            <div class="result-card">
-                <div class="result-header">
-                    <span class="result-icon"></span>
+        <div class="result-content">
 
-                </div>
-                
-                <div class="result-content">
-                    <div class="share-link-section">
-                        <span class="result-icon">🔗</span>
-                        <span class="section-title">Share Link</span>
-                        <div class="link-container">
-                            <input type="text" id="shareLinkInput" readonly>
-                            <button id="copyLinkBtn" class="copy-btn">Copy</button>
-                        </div>
-                    </div>
-                    
-                    <div class="qr-section">
-                        <span class="result-icon qr-toggle" id="qrToggle"><img src="https://cdn-icons-png.flaticon.com/128/9492/9492600.png" height="30"></span>
-                        <span class="section-title qr-toggle" id="qrToggleText">Click On QR to show</span>
-                        <div id="qrContainer" style="display: none;">
-                            <img id="qrCode" src="" alt="QR Code" />
-                        </div>
-                    </div>
+            <div class="access-code-section">
+                <span class="section-title">🔐 Generated Access Code</span>
+                <div class="access-code-box">
+                    <p id="accessCodeDisplay"></p>
                 </div>
             </div>
+
+            <div class="share-link-section">
+                <span class="result-icon">🔗</span>
+                <span class="section-title">Share Link</span>
+                <div class="link-container">
+                    <input type="text" id="shareLinkInput" readonly>
+                    <button id="copyLinkBtn" class="copy-btn">Copy</button>
+                </div>
+            </div>
+
+            <div class="qr-section">
+                <span class="result-icon qr-toggle" id="qrToggle">
+                    <img src="https://cdn-icons-png.flaticon.com/128/9492/9492600.png" height="30">
+                </span>
+
+                <span class="section-title qr-toggle" id="qrToggleText">
+                    Click On QR to show
+                </span>
+
+                <div id="qrContainer" style="display: none;">
+                    <img id="qrCode" src="" alt="QR Code" />
+                </div>
+            </div>
+
         </div>
 
         <!-- Download Section -->
         <div class="section">
             <h2>🔽 Download File</h2>
             <form id="downloadForm">
-                <input type="number" 
-                       id="downloadCode" 
-                       placeholder="Enter 5-digit code"
-                       min="10000" 
-                       max="99999" 
-                       required>
-                
+                <input type="number" id="downloadCode" placeholder="Enter 5-digit code" min="10000" max="99999"
+                    required>
+
                 <div class="button-group">
                     <button type="button" id="infoBtn">Get File Info</button>
                     <button type="submit" id="downloadBtn">Download File</button>
                 </div>
             </form>
-            
+
             <div class="loading" id="downloadLoading" style="display: none;">
                 <div class="spinner"></div>
                 <p>Processing...</p>
             </div>
-            
+
             <div id="downloadMessage"></div>
             <div id="fileInfo"></div>
         </div>
@@ -119,17 +117,28 @@
         <div class="instructions">
             <h3>📋 How to Use Files on Cloud</h3>
             <ul>
-                <li><strong>🔐 Authentication:</strong> Create an account or login to upload files. Your files are securely associated with your account.</li>
-                <li><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can optionally provide a custom 5-digit code, set a password, and choose expiration time.</li>
-                <li><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will need the password to download.</li>
-                <li><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period (1 hour to 7 days).</li>
-                <li><strong>QR Codes:</strong> After upload, get a QR code that others can scan to access the download link instantly.</li>
-                <li><strong>Share Code:</strong> After uploading, share the 5-digit code with others to allow them to download your file.</li>
-                <li><strong>Download Files:</strong> Enter the 5-digit code you received and click "Download File" to get the file instantly.</li>
-                <li><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size, and download count before downloading.</li>
-                <li><strong>Analytics:</strong> View download statistics for your uploaded files through your account.</li>
-                <li><strong>Security:</strong> Files are temporarily stored and automatically deleted after expiration for your privacy and security.</li>
-                <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</li>
+                <li><strong>🔐 Authentication:</strong> Create an account or login to upload files. Your files are
+                    securely associated with your account.</li>
+                <li><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can
+                    optionally provide a custom 5-digit code, set a password, and choose expiration time.</li>
+                <li><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will
+                    need the password to download.</li>
+                <li><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period
+                    (1 hour to 7 days).</li>
+                <li><strong>QR Codes:</strong> After upload, get a QR code that others can scan to access the download
+                    link instantly.</li>
+                <li><strong>Share Code:</strong> After uploading, share the 5-digit code with others to allow them to
+                    download your file.</li>
+                <li><strong>Download Files:</strong> Enter the 5-digit code you received and click "Download File" to
+                    get the file instantly.</li>
+                <li><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size,
+                    and download count before downloading.</li>
+                <li><strong>Analytics:</strong> View download statistics for your uploaded files through your account.
+                </li>
+                <li><strong>Security:</strong> Files are temporarily stored and automatically deleted after expiration
+                    for your privacy and security.</li>
+                <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and
+                    more!</li>
             </ul>
         </div>
     </div>
@@ -185,7 +194,7 @@
 
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             if (authToken) {
                 checkAuthStatus();
             }
@@ -248,9 +257,9 @@
         signupBtn.addEventListener('click', () => goToAuthPage('signup'));
 
         // File input handling
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
-            
+
             if (file) {
                 if (file.size > 20 * 1024 * 1024) { // 20MB
                     fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
@@ -265,9 +274,9 @@
         });
 
         // Upload form handling
-        uploadForm.addEventListener('submit', async function(e) {
+        uploadForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            
+
             if (!fileInput.files[0]) {
                 showMessage(uploadMessage, '❌ Please select a file', 'error');
                 return;
@@ -289,7 +298,7 @@
                 }
                 formData.append('expiration', expirationSelect.value);
 
-               // ✅ Fixed — include token if present
+                // ✅ Fixed — include token if present
                 const headers = {};
                 if (authToken) {
                     headers['Authorization'] = `Bearer ${authToken}`;
@@ -306,12 +315,15 @@
                 if (response.ok) {
                     // Show success message and result
                     showMessage(uploadMessage, `✅ ${result.message}`, 'success');
-                    
+
+                    // Display generated access code
+                    document.getElementById('accessCodeDisplay').innerText = result.code;
+
                     // Show result section
                     shareLinkInput.value = result.downloadUrl;
                     qrCode.src = result.qrCode;
                     resultSection.style.display = 'block';
-                    
+
                     // Scroll to result section
                     resultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -333,7 +345,7 @@
         });
 
         // Copy link functionality
-        copyLinkBtn.addEventListener('click', function() {
+        copyLinkBtn.addEventListener('click', function () {
             const link = shareLinkInput.value;
             navigator.clipboard.writeText(link).then(() => {
                 copyLinkBtn.textContent = '✅ Copied!';
@@ -356,10 +368,10 @@
         });
 
         // QR Code toggle functionality
-        qrToggle.addEventListener('click', function() {
+        qrToggle.addEventListener('click', function () {
             const qrContainer = document.getElementById('qrContainer');
             const qrToggleText = document.getElementById('qrToggleText');
-            
+
             if (qrContainer.style.display === 'none') {
                 qrContainer.style.display = 'block';
                 qrToggleText.textContent = 'QR Code (click to hide)';
@@ -368,11 +380,11 @@
                 qrToggleText.textContent = 'QR Code (click to show)';
             }
         });
-        
+
         // Get file info handling
-        infoBtn.addEventListener('click', async function() {
+        infoBtn.addEventListener('click', async function () {
             const code = downloadCodeInput.value;
-            
+
             if (!code || !/^\d{5}$/.test(code)) {
                 showMessage(downloadMessage, '❌ Please enter a valid 5-digit code', 'error');
                 return;
@@ -410,10 +422,10 @@
         });
 
         // Download form handling
-        downloadForm.addEventListener('submit', function(e) {
+        downloadForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const code = downloadCodeInput.value;
-            
+
             if (!code || !/^\d{5}$/.test(code)) {
                 showMessage(downloadMessage, '❌ Please enter a valid 5-digit code', 'error');
                 return;
@@ -424,12 +436,12 @@
         // IMPROVED: Helper to show messages with better timeout handling
         function showMessage(element, message, type) {
             element.innerHTML = `<div class="message ${type}">${message}</div>`;
-            
+
             // Clear any existing timeout for this element
             if (element.timeoutId) {
                 clearTimeout(element.timeoutId);
             }
-            
+
             // Set a new timeout to clear the message
             element.timeoutId = setTimeout(() => {
                 element.innerHTML = '';
@@ -438,7 +450,7 @@
         }
 
         // Page load animation
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const sections = document.querySelectorAll('.section, .instructions');
             sections.forEach((section, index) => {
                 setTimeout(() => {
@@ -449,4 +461,5 @@
         });
     </script>
 </body>
+
 </html>
