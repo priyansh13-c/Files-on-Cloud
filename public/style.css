@@ -170,6 +170,13 @@ body {
     height: 300px;
 }
 
+.file-input.drag-active {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.1);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+}
+
 .file-input span {
     font-size: 1.1rem;
     position: relative;
