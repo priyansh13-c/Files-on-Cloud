@@ -104,6 +104,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Centralized error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled Exception:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error', message: 'An unexpected error occurred.' });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
