@@ -12,6 +12,7 @@
         <div class="auth-buttons">
             <button id="loginBtn" class="auth-btn">Login</button>
             <button id="signupBtn" class="auth-btn">Sign Up</button>
+            <button id="dashboardBtn" class="auth-btn" style="display: none;">Dashboard</button>
         </div>
         <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
         <h1>Files on Cloud</h1>
@@ -36,9 +37,10 @@
                        min="10000"
                        max="99999">
 
-                <input type="password"
-                       id="filePassword"
-                       placeholder="Password protect file (optional)">
+                <div class="password-container">
+    <input type="password" id="filePassword" placeholder="Password protect file (optional)">
+    <button type="button" id="togglePassword" class="toggle-btn">🔒</button>
+</div>
 
                 <select id="expirationTime">
                     <option value="24h">Expires in 24 hours</option>
@@ -163,6 +165,7 @@
         const filePasswordInput = document.getElementById('filePassword');
         const expirationSelect = document.getElementById('expirationTime');
         const uploadBtn = document.getElementById('uploadBtn');
+        const dashboardBtn = document.getElementById('dashboardBtn');
         const uploadLoading = document.getElementById('uploadLoading');
         const uploadMessage = document.getElementById('uploadMessage');
         const resultSection = document.getElementById('resultSection');
@@ -215,13 +218,16 @@
 
         function updateUI() {
             if (currentUser) {
-                loginBtn.textContent = `Hi, ${currentUser.username}`;
+                loginBtn.textContent = `Hi, ${currentUser.username} (Logout)`;
                 loginBtn.onclick = logout;
                 signupBtn.style.display = 'none';
+                dashboardBtn.style.display = 'inline-block';
+                dashboardBtn.onclick = () => window.location.href = 'dashboard.html';
             } else {
                 loginBtn.textContent = 'Login';
                 loginBtn.onclick = () => window.location.href = 'auth.html?mode=login';
                 signupBtn.style.display = 'inline-block';
+                dashboardBtn.style.display = 'none';
             }
         }
 
@@ -442,6 +448,20 @@
                 }, index * 150);
             });
         });
+
+        // Alag se window load par toggle bind karna
+window.addEventListener("load", () => {
+    const passwordInput = document.getElementById("filePassword");
+    const togglePasswordButton = document.getElementById("togglePassword");
+
+    if (togglePasswordButton && passwordInput) {
+        togglePasswordButton.addEventListener("click", function () {
+            const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+            passwordInput.setAttribute("type", type);
+            this.textContent = type === "password" ? "🔒" : "🔓";
+        });
+    }
+});
     </script>
 </body>
 </html>
