@@ -1001,6 +1001,7 @@ body.modal-open {
     border: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 0.9rem;
 }
+<<<<<<< feat-password-toggle
 
 
 .password-container{
@@ -1048,3 +1049,5 @@ body.modal-open {
   transform: translateY(-50%) !important;
   box-shadow: none !important;
 }
+=======
+>>>>>>> main

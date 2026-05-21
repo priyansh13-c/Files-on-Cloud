@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Uploads - Files on Cloud</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="auth-buttons">
+            <button id="homeBtn" class="auth-btn">Home</button>
+            <button id="logoutBtn" class="auth-btn">Logout</button>
+        </div>
+        <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
+        <h1>My Dashboard</h1>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h2>📊 My Uploaded Files</h2>
+            <div id="dashboardMessage"></div>
+            
+            <div class="dashboard-table-container">
+                <table class="dashboard-table" id="filesTable">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Code</th>
+                            <th>Size</th>
+                            <th>Upload Date</th>
+                            <th>Expires</th>
+                            <th>Downloads</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesTableBody">
+                        <!-- Files will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="loading" id="dashboardLoading" style="display: block;">
+                <div class="spinner"></div>
+                <p>Loading your files...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="auth-modal">
+        <div class="auth-overlay" onclick="closeAnalyticsModal()"></div>
+        <div class="auth-container" style="max-width: 500px;">
+            <span class="auth-close" onclick="closeAnalyticsModal()">&times;</span>
+            <h2>File Analytics</h2>
+            <div id="analyticsContent" class="modal-body">
+                <div class="loading" id="analyticsLoading">
+                    <div class="spinner"></div>
+                </div>
+                <div id="analyticsData" style="display: none;">
+                    <p><strong>Total Downloads:</strong> <span id="totalDownloadsSpan"></span></p>
+                    <h3 style="margin-top: 1rem; color: #667eea;">Recent Downloads</h3>
+                    <ul id="recentDownloadsList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="container">
+            <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "";
+        const authToken = localStorage.getItem('authToken');
+
+        // Check authentication
+        if (!authToken) {
+            window.location.href = 'auth.html?mode=login';
+        }
+
+        const filesTableBody = document.getElementById('filesTableBody');
+        const dashboardLoading = document.getElementById('dashboardLoading');
+        const dashboardMessage = document.getElementById('dashboardMessage');
+        const homeBtn = document.getElementById('homeBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const analyticsModal = document.getElementById('analyticsModal');
+
+        homeBtn.addEventListener('click', () => window.location.href = 'index.html');
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('authToken');
+            window.location.href = 'index.html';
+        });
+
+        document.addEventListener('DOMContentLoaded', fetchMyFiles);
+
+        async function fetchMyFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/api/files/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderFiles(data.files);
+                } else if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    window.location.href = 'auth.html?mode=login';
+                } else {
+                    showMessage(dashboardMessage, '❌ Failed to load files.', 'error');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showMessage(dashboardMessage, '❌ Network error while loading files.', 'error');
+            } finally {
+                dashboardLoading.style.display = 'none';
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function renderFiles(files) {
+            if (!files || files.length === 0) {
+                filesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            You haven't uploaded any files yet.<br><br>
+                            <button onclick="window.location.href='index.html'" class="auth-btn" style="background:#667eea;color:white;border:none;margin-top:1rem;">Upload a File</button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filesTableBody.innerHTML = files.map(file => `
+                <tr>
+                    <td><strong>${file.originalName}</strong></td>
+                    <td><span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${file.code}</span></td>
+                    <td>${formatBytes(file.size)}</td>
+                    <td>${new Date(file.uploadDate).toLocaleDateString()}</td>
+                    <td>${new Date(file.expiresAt).toLocaleDateString()}</td>
+                    <td>${file.downloadCount}</td>
+                    <td style="min-width: 250px;">
+                        <button class="dashboard-action-btn" onclick="copyLink('${file.code}')">Copy Link</button>
+                        <button class="dashboard-action-btn" onclick="openAnalytics('${file.code}')">Analytics</button>
+                        <button class="dashboard-action-btn delete" onclick="deleteFile('${file.code}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function copyLink(code) {
+            const link = `${window.location.origin}/api/download/${code}`;
+            navigator.clipboard.writeText(link).then(() => {
+                showMessage(dashboardMessage, '✅ Link copied to clipboard!', 'success');
+            }).catch(() => {
+                showMessage(dashboardMessage, '❌ Failed to copy link.', 'error');
+            });
+        }
+
+        async function deleteFile(code) {
+            if (!confirm(`Are you sure you want to delete file with code ${code}?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/files/${code}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    showMessage(dashboardMessage, '✅ File deleted successfully.', 'success');
+                    dashboardLoading.style.display = 'block';
+                    filesTableBody.innerHTML = '';
+                    fetchMyFiles();
+                } else {
+                    const result = await response.json();
+                    showMessage(dashboardMessage, `❌ ${result.error || 'Failed to delete file.'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showMessage(dashboardMessage, '❌ Network error while deleting file.', 'error');
+            }
+        }
+
+        async function openAnalytics(code) {
+            analyticsModal.classList.add('show');
+            document.getElementById('analyticsLoading').style.display = 'block';
+            document.getElementById('analyticsData').style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/analytics/${code}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalDownloadsSpan').textContent = data.totalDownloads;
+                    
+                    const list = document.getElementById('recentDownloadsList');
+                    if (data.recentDownloads && data.recentDownloads.length > 0) {
+                        list.innerHTML = data.recentDownloads.map(d => `
+                            <li>
+                                <strong>IP:</strong> ${d.ip.replace(/::ffff:/, '')} <br>
+                                <strong>Time:</strong> ${new Date(d.time).toLocaleString()} <br>
+                                <span style="font-size:0.8rem;color:#aaa;">${d.userAgent}</span>
+                            </li>
+                        `).join('');
+                    } else {
+                        list.innerHTML = '<li>No downloads yet.</li>';
+                    }
+
+                    document.getElementById('analyticsLoading').style.display = 'none';
+                    document.getElementById('analyticsData').style.display = 'block';
+                } else {
+                    const result = await response.json();
+                    alert(result.error || 'Failed to load analytics.');
+                    closeAnalyticsModal();
+                }
+            } catch (error) {
+                console.error('Analytics error:', error);
+                alert('Network error while loading analytics.');
+                closeAnalyticsModal();
+            }
+        }
+
+        function closeAnalyticsModal() {
+            analyticsModal.classList.remove('show');
+        }
+
+        function showMessage(element, message, type) {
+            element.innerHTML = `<div class="message ${type}">${message}</div>`;
+            if (element.timeoutId) clearTimeout(element.timeoutId);
+            element.timeoutId = setTimeout(() => {
+                element.innerHTML = '';
+                element.timeoutId = null;
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

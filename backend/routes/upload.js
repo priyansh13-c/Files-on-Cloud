@@ -183,5 +183,47 @@ router.get('/analytics/:code', auth, async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve analytics.' });
   }
 });
+// Get all files uploaded by current user
+router.get('/files/me', auth, async (req, res) => {
+  try {
+    const files = await FileRecord.find({ uploadedBy: req.user._id })
+      .select('-__v -password') // exclude password hash and version
+      .sort({ uploadDate: -1 });
+    res.json({ files });
+  } catch (error) {
+    console.error('Get user files error:', error);
+    res.status(500).json({ error: 'Failed to retrieve files.' });
+  }
+});
+
+// Delete user file manually
+router.delete('/files/:code', auth, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const fileDoc = await FileRecord.findOne({ code });
+
+    if (!fileDoc) {
+      return res.status(404).json({ error: 'File not found.' });
+    }
+
+    if (!fileDoc.uploadedBy || fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. You can only delete your own files.' });
+    }
+
+    // Delete file from disk
+    const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Delete from DB
+    await FileRecord.deleteOne({ _id: fileDoc._id });
+
+    res.json({ message: 'File deleted successfully.' });
+  } catch (error) {
+    console.error('Delete file error:', error);
+    res.status(500).json({ error: 'Failed to delete file.' });
+  }
+});
 
 module.exports = router;

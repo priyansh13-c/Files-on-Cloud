@@ -25,9 +25,13 @@
             <form id="uploadForm">
                 <div class="file-input-wrapper">
                     <input type="file" id="fileInput" accept="*" required>
-                    <div class="file-input" onclick="document.getElementById('fileInput').click()">
-                        <span class="upload-icon">📁</span>
-                        <span id="fileText">Click to select file (max 20MB)</span>
+                    <div class="file-input" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <div id="previewContainer" style="display: none; margin-bottom: 15px;">
+                            <img id="imagePreview" src="" alt="File Preview" style="max-height: 120px; max-width: 100%; border-radius: 8px; display: none; margin: 0 auto;">
+                            <div id="fileIcon" style="font-size: 60px; display: none; margin: 0 auto;">📄</div>
+                        </div>
+                        <span class="upload-icon" id="uploadIconDefault">📁</span>
+                        <span id="fileText">Click or Drag & Drop to select file (max 20MB)</span>
                     </div>
                 </div>
 
@@ -175,6 +179,11 @@
         const qrToggle = document.getElementById('qrToggle');
         const qrToggleText = document.getElementById('qrToggleText');
         const fileText = document.getElementById('fileText');
+        const dropZone = document.getElementById('dropZone');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const fileIcon = document.getElementById('fileIcon');
+        const uploadIconDefault = document.getElementById('uploadIconDefault');
 
         const downloadForm = document.getElementById('downloadForm');
         const downloadCodeInput = document.getElementById('downloadCode');
@@ -248,22 +257,93 @@
         loginBtn.addEventListener('click', () => goToAuthPage('login'));
         signupBtn.addEventListener('click', () => goToAuthPage('signup'));
 
+        // Drag and Drop Handling
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files; // Assign files to the input
+                handleFileSelect(files[0]);
+            }
+        }, false);
+
         // File input handling
         fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            
-            if (file) {
-                if (file.size > 20 * 1024 * 1024) { // 20MB
-                    fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
-                    e.target.value = ''; // Clear the selection
-                    return;
-                }
-                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-                fileText.innerHTML = `<span style="color: #2ecc71;">✅ ${file.name} (${sizeInMB} MB)</span>`;
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
             } else {
-                fileText.innerHTML = 'Click to select file (max 20MB)';
+                resetFileInput();
             }
         });
+
+        function handleFileSelect(file) {
+            if (file.size > 20 * 1024 * 1024) { // 20MB
+                fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
+                fileInput.value = ''; // Clear the selection
+                resetPreview();
+                return;
+            }
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+            fileText.innerHTML = `<span style="color: #2ecc71;">✅ ${file.name} (${sizeInMB} MB)</span>`;
+            
+            // Show preview
+            uploadIconDefault.style.display = 'none';
+            previewContainer.style.display = 'block';
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    fileIcon.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+                fileIcon.style.display = 'block';
+                if (file.type === 'application/pdf') {
+                    fileIcon.innerHTML = '📕';
+                } else if (file.type.includes('word') || file.type.includes('document')) {
+                    fileIcon.innerHTML = '📘';
+                } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+                    fileIcon.innerHTML = '📗';
+                } else if (file.type.includes('zip') || file.type.includes('compressed')) {
+                    fileIcon.innerHTML = '🗜️';
+                } else {
+                    fileIcon.innerHTML = '📄';
+                }
+            }
+        }
+
+        function resetFileInput() {
+            fileText.innerHTML = 'Click or Drag & Drop to select file (max 20MB)';
+            resetPreview();
+        }
+
+        function resetPreview() {
+            uploadIconDefault.style.display = 'block';
+            previewContainer.style.display = 'none';
+            imagePreview.src = '';
+            imagePreview.style.display = 'none';
+            fileIcon.style.display = 'none';
+        }
 
         // Upload form handling
         uploadForm.addEventListener('submit', async function(e) {
@@ -319,7 +399,7 @@
                     // Reset form after a delay
                     setTimeout(() => {
                         uploadForm.reset();
-                        fileText.innerHTML = 'Click to select file (max 20MB)';
+                        resetFileInput();
                     }, 100);
                 } else {
                     showMessage(uploadMessage, `❌ ${result.error || 'An unknown error occurred.'}`, 'error');
