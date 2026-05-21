@@ -530,7 +530,7 @@ button:disabled {
         flex-direction: column;
         align-items: center;
     }
-
+}
 
 .message {
     padding: 1rem;
@@ -911,4 +911,140 @@ body.modal-open {
         opacity: 1;
         transform: translateY(0);
     }
-}}
+}
+
+/* Dashboard Styles */
+.dashboard-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.dashboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.dashboard-table th, .dashboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-table th {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+    font-weight: 600;
+}
+
+.dashboard-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.dashboard-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-action-btn {
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(102, 126, 234, 0.4);
+    color: #e0e0e0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.dashboard-action-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.dashboard-action-btn.delete {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.4);
+    color: #f44336;
+}
+
+.dashboard-action-btn.delete:hover {
+    background: #f44336;
+    color: white;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #888;
+}
+
+.modal-body {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.modal-body ul {
+    list-style: none;
+    padding: 0;
+}
+
+.modal-body li {
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 0.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+}
+
+
+.password-container{
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-container input{
+  width: 100%;
+  padding-right: 44px;
+  box-sizing: border-box;
+}
+
+#togglePassword{
+  position: absolute;
+  right: 12px;
+  top: 35%;
+  transform: translateY(-50%);
+
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+
+  color: #a0aec0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#togglePassword:hover{
+  color: #fff;
+}
+
+#togglePassword:active{
+  transform: translateY(-50%) !important;
+  box-shadow: none !important;
+}
