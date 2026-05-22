@@ -41,9 +41,10 @@
                        min="10000"
                        max="99999">
 
-                <input type="password"
-                       id="filePassword"
-                       placeholder="Password protect file (optional)">
+                <div class="password-container">
+    <input type="password" id="filePassword" placeholder="Password protect file (optional)">
+    <button type="button" id="togglePassword" class="toggle-btn">🔒</button>
+</div>
 
                 <select id="expirationTime">
                     <option value="24h">Expires in 24 hours</option>
@@ -527,6 +528,20 @@
                 }, index * 150);
             });
         });
+
+        // Alag se window load par toggle bind karna
+window.addEventListener("load", () => {
+    const passwordInput = document.getElementById("filePassword");
+    const togglePasswordButton = document.getElementById("togglePassword");
+
+    if (togglePasswordButton && passwordInput) {
+        togglePasswordButton.addEventListener("click", function () {
+            const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+            passwordInput.setAttribute("type", type);
+            this.textContent = type === "password" ? "🔒" : "🔓";
+        });
+    }
+});
     </script>
 </body>
 </html>
