@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header -->
     <div class="header">
         <div class="auth-buttons">
             <button id="homeBtn" class="auth-btn">Home</button>
@@ -18,9 +17,33 @@
     </div>
 
     <div class="container">
+        
+        <div class="storage-container">
+            <div class="storage-header">
+                <strong>☁️ Storage Quota</strong>
+                <span id="storageLabel">Calculating...</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="storageFill"></div>
+            </div>
+            <div class="storage-text" id="storagePercentage">0% Used</div>
+        </div>
+
         <div class="section">
             <h2>📊 My Uploaded Files</h2>
             <div id="dashboardMessage"></div>
+            
+            <div class="controls-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search files by name...">
+                <select id="sortSelect" class="sort-select">
+                    <option value="date-new">🕒 Newest First</option>
+                    <option value="date-old">🕒 Oldest First</option>
+                    <option value="size-large">💾 Largest Size</option>
+                    <option value="size-small">💾 Smallest Size</option>
+                    <option value="name-a">🔤 Name (A-Z)</option>
+                    <option value="name-z">🔤 Name (Z-A)</option>
+                </select>
+            </div>
             
             <div class="dashboard-table-container">
                 <table class="dashboard-table" id="filesTable">
@@ -36,8 +59,7 @@
                         </tr>
                     </thead>
                     <tbody id="filesTableBody">
-                        <!-- Files will be populated here -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
             
@@ -48,7 +70,6 @@
         </div>
     </div>
 
-    <!-- Analytics Modal -->
     <div id="analyticsModal" class="auth-modal">
         <div class="auth-overlay" onclick="closeAnalyticsModal()"></div>
         <div class="auth-container" style="max-width: 500px;">
@@ -67,7 +88,6 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
         <div class="container">
             <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
@@ -78,10 +98,10 @@
         const API_BASE = "";
         const authToken = localStorage.getItem('authToken');
 
-        // Check authentication
+        // Check authentication 
         if (!authToken) {
-            window.location.href = 'auth.html?mode=login';
-        }
+             window.location.href = 'auth.html?mode=login';
+         }
 
         const filesTableBody = document.getElementById('filesTableBody');
         const dashboardLoading = document.getElementById('dashboardLoading');
@@ -89,6 +109,9 @@
         const homeBtn = document.getElementById('homeBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const analyticsModal = document.getElementById('analyticsModal');
+
+        const TOTAL_QUOTA = 1024 * 1024 * 1024; 
+        let globalFilesList = []; 
 
         homeBtn.addEventListener('click', () => window.location.href = 'index.html');
         logoutBtn.addEventListener('click', () => {
@@ -106,7 +129,8 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    renderFiles(data.files);
+                    globalFilesList = data.files || [];
+                    processSearchAndSort(); 
                 } else if (response.status === 401) {
                     localStorage.removeItem('authToken');
                     window.location.href = 'auth.html?mode=login';
@@ -129,12 +153,67 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        function updateStorageVisualizer(files) {
+            const safeFiles = files || [];
+            const totalUsed = safeFiles.reduce((sum, file) => sum + (file.size || 0), 0);
+            
+            let percentage = (totalUsed / TOTAL_QUOTA) * 100;
+            if (percentage > 100) percentage = 100;
+
+            document.getElementById('storageLabel').textContent = `${formatBytes(totalUsed)} / 1 GB Used`;
+            document.getElementById('storagePercentage').textContent = `${percentage.toFixed(1)}% Used`;
+            
+            const fillElement = document.getElementById('storageFill');
+            fillElement.style.width = `${percentage}%`;
+
+            fillElement.classList.remove('warning', 'danger');
+            if (percentage >= 90) fillElement.classList.add('danger');
+            else if (percentage >= 75) fillElement.classList.add('warning');
+        }
+
+        function processSearchAndSort() {
+            let filteredFiles = [...globalFilesList];
+            const searchInput = document.getElementById('searchInput');
+            const sortSelect = document.getElementById('sortSelect');
+            
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const sortValue = sortSelect ? sortSelect.value : 'date-new';
+
+            if (searchTerm) {
+                filteredFiles = filteredFiles.filter(file => 
+                    file.originalName.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            filteredFiles.sort((a, b) => {
+                switch (sortValue) {
+                    case 'date-new': return new Date(b.uploadDate) - new Date(a.uploadDate);
+                    case 'date-old': return new Date(a.uploadDate) - new Date(b.uploadDate);
+                    case 'size-large': return b.size - a.size;
+                    case 'size-small': return a.size - b.size;
+                    case 'name-a': return a.originalName.localeCompare(b.originalName);
+                    case 'name-z': return b.originalName.localeCompare(a.originalName);
+                    default: return 0;
+                }
+            });
+
+            renderFiles(filteredFiles);
+        }
+
+        const searchElement = document.getElementById('searchInput');
+        const sortElement = document.getElementById('sortSelect');
+        
+        if (searchElement) searchElement.addEventListener('input', processSearchAndSort);
+        if (sortElement) sortElement.addEventListener('change', processSearchAndSort);
+
         function renderFiles(files) {
+            updateStorageVisualizer(files);
+
             if (!files || files.length === 0) {
                 filesTableBody.innerHTML = `
                     <tr>
                         <td colspan="7" class="empty-state">
-                            You haven't uploaded any files yet.<br><br>
+                            No files found.<br><br>
                             <button onclick="window.location.href='index.html'" class="auth-btn" style="background:#667eea;color:white;border:none;margin-top:1rem;">Upload a File</button>
                         </td>
                     </tr>
