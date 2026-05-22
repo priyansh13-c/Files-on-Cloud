@@ -239,6 +239,7 @@
         const previewModalDetails = document.getElementById('previewModalDetails');
         const previewModalTitle = document.getElementById('previewModalTitle');
         let currentImagePreview = '';
+        let latestPreviewToken = null;
         const uploadRulesBtn = document.getElementById('uploadRulesBtn');
         const uploadRulesModal = document.getElementById('uploadRulesModal');
         const uploadRulesClose = document.getElementById('uploadRulesClose');
@@ -519,13 +520,21 @@
 
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
+                const previewToken = {};
+                latestPreviewToken = previewToken;
                 reader.onload = function(e) {
+                    if (previewToken !== latestPreviewToken) {
+                        return;
+                    }
                     filePreviewImage.src = e.target.result;
                     currentImagePreview = e.target.result;
                     filePreviewImage.style.display = 'block';
                     filePreviewIcon.style.display = 'none';
                 };
                 reader.onerror = function() {
+                    if (previewToken !== latestPreviewToken) {
+                        return;
+                    }
                     currentImagePreview = '';
                     filePreviewImage.src = '';
                     filePreviewImage.style.display = 'none';
@@ -538,6 +547,7 @@
                 filePreviewImage.src = '';
                 filePreviewImage.style.display = 'none';
                 currentImagePreview = '';
+                latestPreviewToken = null;
                 filePreviewIcon.style.display = 'flex';
                 filePreviewIcon.textContent = getFileIcon(file);
             }
@@ -558,6 +568,7 @@
             filePreviewName.textContent = '';
             filePreviewSize.textContent = '';
             currentImagePreview = '';
+            latestPreviewToken = null;
         }
 
         // Upload form handling
