@@ -26,13 +26,21 @@
                 <div class="file-input-wrapper">
                     <input type="file" id="fileInput" accept="*" required>
                     <div class="file-input" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                        <div id="previewContainer" style="display: none; margin-bottom: 15px;">
-                            <img id="imagePreview" src="" alt="File Preview" style="max-height: 120px; max-width: 100%; border-radius: 8px; display: none; margin: 0 auto;">
-                            <div id="fileIcon" style="font-size: 60px; display: none; margin: 0 auto;">📄</div>
-                        </div>
                         <span class="upload-icon" id="uploadIconDefault">📁</span>
                         <span id="fileText">Click or Drag & Drop to select file (max 20MB)</span>
                     </div>
+                </div>
+
+                <div class="file-preview" id="filePreview" style="display: none;" tabindex="0" role="button" aria-label="Open file preview">
+                    <div class="file-preview-media">
+                        <img id="filePreviewImage" src="" alt="Selected file preview" style="display: none;">
+                        <div id="filePreviewIcon" class="file-preview-icon" style="display: none;">📄</div>
+                    </div>
+                    <div class="file-preview-meta">
+                        <p class="file-preview-name" id="filePreviewName"></p>
+                        <p class="file-preview-size" id="filePreviewSize"></p>
+                    </div>
+                    <button type="button" id="clearFileBtn" class="file-preview-clear">Clear selection</button>
                 </div>
 
                 <input type="number"
@@ -61,6 +69,17 @@
             </div>
 
             <div id="uploadMessage"></div>
+        </div>
+
+        <div class="preview-modal" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle" aria-hidden="true">
+            <div class="preview-modal-content">
+                <button type="button" class="preview-modal-close" id="previewModalClose" aria-label="Close preview">✕</button>
+                <div class="preview-modal-body">
+                    <h3 id="previewModalTitle">File preview</h3>
+                    <img id="previewModalImage" alt="Full image preview" style="display: none;">
+                    <div class="preview-modal-details" id="previewModalDetails" style="display: none;"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Result Section -->
@@ -179,10 +198,19 @@
         const qrToggleText = document.getElementById('qrToggleText');
         const fileText = document.getElementById('fileText');
         const dropZone = document.getElementById('dropZone');
-        const previewContainer = document.getElementById('previewContainer');
-        const imagePreview = document.getElementById('imagePreview');
-        const fileIcon = document.getElementById('fileIcon');
         const uploadIconDefault = document.getElementById('uploadIconDefault');
+        const filePreview = document.getElementById('filePreview');
+        const filePreviewImage = document.getElementById('filePreviewImage');
+        const filePreviewIcon = document.getElementById('filePreviewIcon');
+        const filePreviewName = document.getElementById('filePreviewName');
+        const filePreviewSize = document.getElementById('filePreviewSize');
+        const clearFileBtn = document.getElementById('clearFileBtn');
+        const previewModal = document.getElementById('previewModal');
+        const previewModalClose = document.getElementById('previewModalClose');
+        const previewModalImage = document.getElementById('previewModalImage');
+        const previewModalDetails = document.getElementById('previewModalDetails');
+        const previewModalTitle = document.getElementById('previewModalTitle');
+        let currentImagePreview = '';
 
         const downloadForm = document.getElementById('downloadForm');
         const downloadCodeInput = document.getElementById('downloadCode');
@@ -292,6 +320,124 @@
             }
         });
 
+        clearFileBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            resetFileInput();
+        });
+
+        filePreview.addEventListener('click', (event) => {
+            if (event.target === clearFileBtn) {
+                return;
+            }
+            const file = fileInput.files[0];
+            if (!file) {
+                return;
+            }
+            openPreviewModal(file);
+        });
+
+        filePreview.addEventListener('keydown', (event) => {
+            if (event.target === clearFileBtn) {
+                return;
+            }
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) {
+                return;
+            }
+            openPreviewModal(file);
+        });
+
+        previewModalClose.addEventListener('click', closePreviewModal);
+        previewModal.addEventListener('click', (event) => {
+            if (event.target === previewModal) {
+                closePreviewModal();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && previewModal.classList.contains('open')) {
+                closePreviewModal();
+            }
+        });
+
+        function openPreviewModal(file) {
+            previewModalTitle.textContent = 'File preview';
+            if (file.type.startsWith('image/')) {
+                previewModalImage.src = currentImagePreview || filePreviewImage.src;
+                previewModalImage.style.display = 'block';
+                previewModalDetails.style.display = 'none';
+            } else {
+                previewModalImage.src = '';
+                previewModalImage.style.display = 'none';
+                previewModalDetails.textContent = '';
+                previewModalDetails.appendChild(createPreviewDetail('Name', file.name));
+                previewModalDetails.appendChild(createPreviewDetail('Size', formatFileSize(file.size)));
+                previewModalDetails.appendChild(createPreviewDetail('Type', file.type || 'Unknown'));
+                previewModalDetails.style.display = 'grid';
+            }
+            previewModal.classList.add('open');
+            previewModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function createPreviewDetail(label, value) {
+            const item = document.createElement('div');
+            item.className = 'preview-detail-item';
+
+            const labelEl = document.createElement('span');
+            labelEl.className = 'preview-detail-label';
+            labelEl.textContent = label;
+
+            const valueEl = document.createElement('span');
+            valueEl.textContent = value;
+
+            item.appendChild(labelEl);
+            item.appendChild(valueEl);
+
+            return item;
+        }
+
+        function closePreviewModal() {
+            previewModal.classList.remove('open');
+            previewModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) {
+                return `${bytes} B`;
+            }
+            if (bytes < 1024 * 1024) {
+                return `${(bytes / 1024).toFixed(1)} KB`;
+            }
+            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        function getFileIcon(file) {
+            if (file.type.startsWith('audio/')) {
+                return '🎵';
+            }
+            if (file.type.startsWith('video/')) {
+                return '🎬';
+            }
+            if (file.type === 'application/pdf') {
+                return '📄';
+            }
+            if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+                return '📊';
+            }
+            if (file.type.includes('word') || file.type.includes('document')) {
+                return '📝';
+            }
+            if (file.type.includes('zip') || file.type.includes('compressed')) {
+                return '🗜️';
+            }
+            return '📁';
+        }
+
         function handleFileSelect(file) {
             if (file.size > 20 * 1024 * 1024) { // 20MB
                 fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
@@ -300,48 +446,55 @@
                 return;
             }
             const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-            fileText.innerHTML = `<span style="color: #2ecc71;">✅ ${file.name} (${sizeInMB} MB)</span>`;
-            
-            // Show preview
+            fileText.textContent = `✅ ${file.name} (${sizeInMB} MB)`;
+            fileText.style.color = '#2ecc71';
+
             uploadIconDefault.style.display = 'none';
-            previewContainer.style.display = 'block';
-            
+            filePreview.style.display = 'flex';
+            filePreviewName.textContent = file.name;
+            filePreviewSize.textContent = formatFileSize(file.size);
+
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                    fileIcon.style.display = 'none';
-                }
+                    filePreviewImage.src = e.target.result;
+                    currentImagePreview = e.target.result;
+                    filePreviewImage.style.display = 'block';
+                    filePreviewIcon.style.display = 'none';
+                };
+                reader.onerror = function() {
+                    currentImagePreview = '';
+                    filePreviewImage.src = '';
+                    filePreviewImage.style.display = 'none';
+                    filePreviewIcon.style.display = 'flex';
+                    filePreviewIcon.textContent = getFileIcon(file);
+                    showMessage(uploadMessage, '❌ Image preview failed to load.', 'error');
+                };
                 reader.readAsDataURL(file);
             } else {
-                imagePreview.style.display = 'none';
-                fileIcon.style.display = 'block';
-                if (file.type === 'application/pdf') {
-                    fileIcon.innerHTML = '📕';
-                } else if (file.type.includes('word') || file.type.includes('document')) {
-                    fileIcon.innerHTML = '📘';
-                } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
-                    fileIcon.innerHTML = '📗';
-                } else if (file.type.includes('zip') || file.type.includes('compressed')) {
-                    fileIcon.innerHTML = '🗜️';
-                } else {
-                    fileIcon.innerHTML = '📄';
-                }
+                filePreviewImage.src = '';
+                filePreviewImage.style.display = 'none';
+                currentImagePreview = '';
+                filePreviewIcon.style.display = 'flex';
+                filePreviewIcon.textContent = getFileIcon(file);
             }
         }
 
         function resetFileInput() {
             fileText.innerHTML = 'Click or Drag & Drop to select file (max 20MB)';
+            fileText.style.color = '';
             resetPreview();
         }
 
         function resetPreview() {
             uploadIconDefault.style.display = 'block';
-            previewContainer.style.display = 'none';
-            imagePreview.src = '';
-            imagePreview.style.display = 'none';
-            fileIcon.style.display = 'none';
+            filePreview.style.display = 'none';
+            filePreviewImage.src = '';
+            filePreviewImage.style.display = 'none';
+            filePreviewIcon.style.display = 'none';
+            filePreviewName.textContent = '';
+            filePreviewSize.textContent = '';
+            currentImagePreview = '';
         }
 
         // Upload form handling
