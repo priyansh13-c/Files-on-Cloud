@@ -13,8 +13,16 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '..', '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
+    fs.promises.access(uploadDir)
+      .then(() => cb(null, uploadDir))
+      .catch(async () => {
+        try {
+          await fs.promises.mkdir(uploadDir, { recursive: true });
+          cb(null, uploadDir);
+        } catch (error) {
+          cb(error);
+        }
+      });
   },
   filename: (req, file, cb) => {
     const uniqueName = crypto.randomBytes(16).toString('hex') + path.extname(file.originalname);
@@ -79,12 +87,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     let { code, password, expiration } = req.body;
     if (code) {
       if (!/^\d{5}$/.test(code)) {
-        fs.unlinkSync(req.file.path);
+        await fs.promises.unlink(req.file.path);
         return res.status(400).json({ error: 'Code must be exactly 5 digits.' });
       }
       const existingFile = await FileRecord.findOne({ code });
       if (existingFile) {
-        fs.unlinkSync(req.file.path);
+        await fs.promises.unlink(req.file.path);
         return res.status(409).json({ error: 'This code is already in use.' });
       }
     } else {
@@ -121,7 +129,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('Upload Error:', error);
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (req.file) {
+      try {
+        await fs.promises.access(req.file.path);
+        await fs.promises.unlink(req.file.path);
+      } catch (cleanupError) {
+        console.error('Failed to remove uploaded file after error:', cleanupError);
+      }
+    }
     res.status(500).json({ error: 'Server error during file upload.' });
   }
 });
@@ -212,8 +227,11 @@ router.delete('/files/:code', auth, async (req, res) => {
 
     // Delete file from disk
     const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      await fs.promises.access(filePath);
+      await fs.promises.unlink(filePath);
+    } catch (error) {
+      console.error('Failed to delete file from disk:', error);
     }
 
     // Delete from DB

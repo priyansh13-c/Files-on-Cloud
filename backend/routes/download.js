@@ -32,7 +32,9 @@ router.get('/download/:code', async (req, res) => {
     }
 
     const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-    if (!fs.existsSync(filePath)) {
+    try {
+      await fs.promises.access(filePath);
+    } catch (error) {
       return res.status(404).send('<h1>File missing from server</h1>');
     }
 

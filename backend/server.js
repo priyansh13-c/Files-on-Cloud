@@ -6,7 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 10002;
@@ -80,9 +80,12 @@ cron.schedule('0 * * * *', async () => {
     for (const file of expiredFiles) {
       // Delete file from filesystem
       const filePath = path.join(__dirname, '..', 'uploads', file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      try {
+        await fs.promises.access(filePath);
+        await fs.promises.unlink(filePath);
         console.log(`Deleted expired file: ${file.filename}`);
+      } catch (error) {
+        console.error(`Failed to delete expired file: ${file.filename}`, error);
       }
 
       // Delete from database
