@@ -21,7 +21,10 @@
     <div class="container">
         <!-- Upload Section -->
         <div class="section">
-            <h2>🔼 Upload File</h2>
+            <h2 class="upload-heading">
+                <span>🔼 Upload File</span>
+                <button type="button" id="uploadRulesBtn" class="rules-info-btn" aria-haspopup="dialog" aria-controls="uploadRulesModal" aria-label="View upload rules">ℹ️</button>
+            </h2>
             <form id="uploadForm">
                 <div class="file-input-wrapper">
                     <input type="file" id="fileInput" accept="*" required>
@@ -33,16 +36,6 @@
                         <span class="upload-icon" id="uploadIconDefault">📁</span>
                         <span id="fileText">Click or Drag & Drop to select file</span>
                     </div>
-                </div>
-
-                <div class="upload-rules" role="note" aria-live="polite">
-                    <p class="upload-rules-title">Upload rules</p>
-                    <ul class="upload-rules-list">
-                        <li id="ruleMaxSize"></li>
-                        <li id="ruleAllowedTypes"></li>
-                        <li id="ruleBlockedTypes"></li>
-                        <li id="ruleSecurity"></li>
-                    </ul>
                 </div>
 
                 <input type="number"
@@ -71,6 +64,23 @@
             </div>
 
             <div id="uploadMessage"></div>
+        </div>
+
+        <div class="modal" id="uploadRulesModal" role="dialog" aria-modal="true" aria-labelledby="uploadRulesTitle" aria-hidden="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="uploadRulesTitle">Upload rules</h3>
+                    <button type="button" class="modal-close" id="uploadRulesClose" aria-label="Close upload rules">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <ul class="modal-rule-list">
+                        <li><strong>Max file size:</strong> <span id="ruleMaxSize"></span></li>
+                        <li><strong>Allowed:</strong> <span id="ruleAllowedTypes"></span></li>
+                        <li><strong>Blocked:</strong> <span id="ruleBlockedTypes"></span></li>
+                        <li><strong>Security:</strong> <span id="ruleSecurity"></span></li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- Result Section -->
@@ -201,6 +211,9 @@
         const imagePreview = document.getElementById('imagePreview');
         const fileIcon = document.getElementById('fileIcon');
         const uploadIconDefault = document.getElementById('uploadIconDefault');
+        const uploadRulesBtn = document.getElementById('uploadRulesBtn');
+        const uploadRulesModal = document.getElementById('uploadRulesModal');
+        const uploadRulesClose = document.getElementById('uploadRulesClose');
         const ruleMaxSize = document.getElementById('ruleMaxSize');
         const ruleAllowedTypes = document.getElementById('ruleAllowedTypes');
         const ruleBlockedTypes = document.getElementById('ruleBlockedTypes');
@@ -218,14 +231,39 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             fileText.textContent = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
-            ruleMaxSize.textContent = `Max file size: ${MAX_FILE_SIZE_MB} MB`;
-            ruleAllowedTypes.textContent = 'Allowed: all file types except those blocked below';
-            ruleBlockedTypes.textContent = `Blocked: ${BLOCKED_EXTENSIONS.join(', ')}`;
-            ruleSecurity.textContent = 'Security: executable installers listed above are blocked by server validation';
+            ruleMaxSize.textContent = `${MAX_FILE_SIZE_MB} MB`;
+            ruleAllowedTypes.textContent = 'All file types except those blocked below';
+            ruleBlockedTypes.textContent = BLOCKED_EXTENSIONS.join(', ');
+            ruleSecurity.textContent = 'Executable installers listed above are blocked by server validation';
             if (authToken) {
                 checkAuthStatus();
             }
             updateUI();
+        });
+
+        function openUploadRules() {
+            uploadRulesModal.classList.add('open');
+            uploadRulesModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeUploadRules() {
+            uploadRulesModal.classList.remove('open');
+            uploadRulesModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+
+        uploadRulesBtn.addEventListener('click', openUploadRules);
+        uploadRulesClose.addEventListener('click', closeUploadRules);
+        uploadRulesModal.addEventListener('click', (e) => {
+            if (e.target === uploadRulesModal) {
+                closeUploadRules();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && uploadRulesModal.classList.contains('open')) {
+                closeUploadRules();
+            }
         });
 
         // Auth functions
