@@ -21,7 +21,10 @@
     <div class="container">
         <!-- Upload Section -->
         <div class="section">
-            <h2>🔼 Upload File</h2>
+            <h2 class="upload-heading">
+                <span>🔼 Upload File</span>
+                <button type="button" id="uploadRulesBtn" class="rules-info-btn" aria-haspopup="dialog" aria-controls="uploadRulesModal" aria-label="View upload rules">ℹ️</button>
+            </h2>
             <form id="uploadForm">
                 <div class="file-input-wrapper">
                     <input type="file" id="fileInput" accept="*" required>
@@ -78,6 +81,23 @@
                     <h3 id="previewModalTitle">File preview</h3>
                     <img id="previewModalImage" alt="Full image preview" style="display: none;">
                     <div class="preview-modal-details" id="previewModalDetails" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="uploadRulesModal" role="dialog" aria-modal="true" aria-labelledby="uploadRulesTitle" aria-hidden="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="uploadRulesTitle">Upload rules</h3>
+                    <button type="button" class="modal-close" id="uploadRulesClose" aria-label="Close upload rules">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <ul class="modal-rule-list">
+                        <li><strong>Max file size:</strong> <span id="ruleMaxSize"></span></li>
+                        <li><strong>Allowed:</strong> <span id="ruleAllowedTypes"></span></li>
+                        <li><strong>Blocked:</strong> <span id="ruleBlockedTypes"></span></li>
+                        <li><strong>Security:</strong> <span id="ruleSecurity"></span></li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -175,6 +195,14 @@
 
     <script>
         const API_BASE = "";
+        const MAX_FILE_SIZE_MB = 20;
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+        const BLOCKED_EXTENSIONS = Array.from(new Set([
+            '.exe',
+            '.swf',
+            '.jar',
+            '.msi'
+        ]));
 
         // Auth state
         let currentUser = null;
@@ -211,6 +239,13 @@
         const previewModalDetails = document.getElementById('previewModalDetails');
         const previewModalTitle = document.getElementById('previewModalTitle');
         let currentImagePreview = '';
+        const uploadRulesBtn = document.getElementById('uploadRulesBtn');
+        const uploadRulesModal = document.getElementById('uploadRulesModal');
+        const uploadRulesClose = document.getElementById('uploadRulesClose');
+        const ruleMaxSize = document.getElementById('ruleMaxSize');
+        const ruleAllowedTypes = document.getElementById('ruleAllowedTypes');
+        const ruleBlockedTypes = document.getElementById('ruleBlockedTypes');
+        const ruleSecurity = document.getElementById('ruleSecurity');
 
         const downloadForm = document.getElementById('downloadForm');
         const downloadCodeInput = document.getElementById('downloadCode');
@@ -223,6 +258,11 @@
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
+            fileText.textContent = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
+            ruleMaxSize.textContent = `${MAX_FILE_SIZE_MB} MB`;
+            ruleAllowedTypes.textContent = 'All file types except those blocked below';
+            ruleBlockedTypes.textContent = BLOCKED_EXTENSIONS.join(', ');
+            ruleSecurity.textContent = 'Executable installers listed above are blocked by server validation';
             if (authToken) {
                 checkAuthStatus();
             }
@@ -361,6 +401,29 @@
             if (event.key === 'Escape' && previewModal.classList.contains('open')) {
                 closePreviewModal();
             }
+            if (event.key === 'Escape' && uploadRulesModal.classList.contains('open')) {
+                closeUploadRules();
+            }
+        });
+
+        function openUploadRules() {
+            uploadRulesModal.classList.add('open');
+            uploadRulesModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeUploadRules() {
+            uploadRulesModal.classList.remove('open');
+            uploadRulesModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }
+
+        uploadRulesBtn.addEventListener('click', openUploadRules);
+        uploadRulesClose.addEventListener('click', closeUploadRules);
+        uploadRulesModal.addEventListener('click', (event) => {
+            if (event.target === uploadRulesModal) {
+                closeUploadRules();
+            }
         });
 
         function openPreviewModal(file) {
@@ -439,8 +502,8 @@
         }
 
         function handleFileSelect(file) {
-            if (file.size > 20 * 1024 * 1024) { // 20MB
-                fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max ${MAX_FILE_SIZE_MB}MB)</span>`;
                 fileInput.value = ''; // Clear the selection
                 resetPreview();
                 return;
@@ -481,7 +544,7 @@
         }
 
         function resetFileInput() {
-            fileText.innerHTML = 'Click or Drag & Drop to select file (max 20MB)';
+            fileText.textContent = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
             fileText.style.color = '';
             resetPreview();
         }
