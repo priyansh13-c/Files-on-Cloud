@@ -31,8 +31,18 @@
                             <div id="fileIcon" style="font-size: 60px; display: none; margin: 0 auto;">📄</div>
                         </div>
                         <span class="upload-icon" id="uploadIconDefault">📁</span>
-                        <span id="fileText">Click or Drag & Drop to select file (max 20MB)</span>
+                        <span id="fileText">Click or Drag & Drop to select file</span>
                     </div>
+                </div>
+
+                <div class="upload-rules" role="note" aria-live="polite">
+                    <p class="upload-rules-title">Upload rules</p>
+                    <ul class="upload-rules-list">
+                        <li id="ruleMaxSize"></li>
+                        <li id="ruleAllowedTypes"></li>
+                        <li id="ruleBlockedTypes"></li>
+                        <li id="ruleSecurity"></li>
+                    </ul>
                 </div>
 
                 <input type="number"
@@ -156,6 +166,14 @@
 
     <script>
         const API_BASE = "";
+        const MAX_FILE_SIZE_MB = 20;
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+        const BLOCKED_EXTENSIONS = Array.from(new Set([
+            '.exe',
+            '.swf',
+            '.jar',
+            '.msi'
+        ]));
 
         // Auth state
         let currentUser = null;
@@ -183,6 +201,10 @@
         const imagePreview = document.getElementById('imagePreview');
         const fileIcon = document.getElementById('fileIcon');
         const uploadIconDefault = document.getElementById('uploadIconDefault');
+        const ruleMaxSize = document.getElementById('ruleMaxSize');
+        const ruleAllowedTypes = document.getElementById('ruleAllowedTypes');
+        const ruleBlockedTypes = document.getElementById('ruleBlockedTypes');
+        const ruleSecurity = document.getElementById('ruleSecurity');
 
         const downloadForm = document.getElementById('downloadForm');
         const downloadCodeInput = document.getElementById('downloadCode');
@@ -195,6 +217,11 @@
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
+            fileText.textContent = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
+            ruleMaxSize.textContent = `Max file size: ${MAX_FILE_SIZE_MB} MB`;
+            ruleAllowedTypes.textContent = 'Allowed: all file types except those blocked below';
+            ruleBlockedTypes.textContent = `Blocked: ${BLOCKED_EXTENSIONS.join(', ')}`;
+            ruleSecurity.textContent = 'Security: executable installers listed above are blocked by server validation';
             if (authToken) {
                 checkAuthStatus();
             }
@@ -293,8 +320,8 @@
         });
 
         function handleFileSelect(file) {
-            if (file.size > 20 * 1024 * 1024) { // 20MB
-                fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max 20MB)</span>`;
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                fileText.innerHTML = `<span style="color: #e74c3c;">❌ File too large (max ${MAX_FILE_SIZE_MB}MB)</span>`;
                 fileInput.value = ''; // Clear the selection
                 resetPreview();
                 return;
@@ -332,7 +359,7 @@
         }
 
         function resetFileInput() {
-            fileText.innerHTML = 'Click or Drag & Drop to select file (max 20MB)';
+            fileText.innerHTML = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
             resetPreview();
         }
 
