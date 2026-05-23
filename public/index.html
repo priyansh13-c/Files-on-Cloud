@@ -7,6 +7,7 @@
   <meta name="description" content="Upload up to 20MB, share with a 5-digit code or QR. Password protect, set expiry from 1 hour to 7 days." />
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://api.qrserver.com" />
+  <script src="theme.js"></script>
 </head>
 <body>
   <!-- The Top Navigation Bar -->
@@ -20,7 +21,8 @@
       <a href="#workspace" class="btn btn-ghost btn-sm" data-tab="download">Download</a>
       <a href="#instructions" class="btn btn-ghost btn-sm">Instructions</a>
     </nav>
-    <div class="nav-cta">
+    <div class="nav-cta" style="display: flex; align-items: center; gap: 8px;">
+      <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
       <button class="btn btn-ghost" id="loginBtn">Login</button>
       <button class="btn btn-primary" id="signupBtn">Sign Up</button>
       <button class="btn btn-outline" id="dashboardBtn" style="display: none;">Dashboard</button>

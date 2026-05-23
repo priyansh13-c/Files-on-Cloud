@@ -60,43 +60,31 @@ cd Files-on-Cloud
 
 ---
 
-## 🔧 Backend Setup
+## 🔧 Setup & Run Locally
 
-```bash
-cd backend
-npm install
-```
+1. **Install Dependencies**
+   Run the following from the root directory:
+   ```bash
+   npm install
+   ```
 
-Create `.env` file:
+2. **Environment Variables**
+   Create a `.env` file in the root directory (you can copy from `.env.example`):
+   ```env
+   PORT=10002
+   MONGO_URI=your_mongodb_connection_string_here
+   JWT_SECRET=your_secret_key_here
+   ```
 
-```env
-PORT=5000
-DATABASE_URL=your_database_url_here
-JWT_SECRET=your_secret_key_here
-```
-
----
-
-## 📦 Frontend Setup
-
-```bash
-cd ../public
-npm install
-```
-
----
-
-## ▶️ Run Locally
-
-```bash
-cd backend
-npm start
-```
-
-```bash
-cd public
-npm start
-```
+3. **Start the Application**
+   ```bash
+   npm start
+   ```
+   Or for development mode (auto-restarts on changes):
+   ```bash
+   npm run dev
+   ```
+   The backend will serve both the API and the frontend UI automatically.
 ---
 
 ## 🧪 Usage

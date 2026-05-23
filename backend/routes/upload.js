@@ -42,7 +42,10 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.microsoft.portable-executable' // .exe
   ];
 
-  if (dangerousTypes.includes(file.mimetype)) {
+  const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.msi', '.jar', '.swf', '.vbs', '.js'];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (dangerousTypes.includes(file.mimetype) || dangerousExtensions.includes(ext)) {
     return cb(new Error('File type not allowed for security reasons.'), false);
   }
 
