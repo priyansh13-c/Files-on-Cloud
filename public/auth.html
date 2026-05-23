@@ -11,6 +11,7 @@
     <div class="header">
         <div class="auth-buttons" style="left: 2rem;">
             <button id="backBtn" class="auth-btn">← Back</button>
+            <button id="themeToggle" class="auth-btn">🌙</button>
         </div>
         <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
         <h1>Files on Cloud</h1>
@@ -26,7 +27,10 @@
                         <input type="password" id="loginPassword" placeholder="Password" required>
                         <button type="submit" id="loginSubmit">Login</button>
                     </form>
-                    <p>Don't have an account? <a href="#" id="showSignup">Sign up</a></p>
+                    <p class="signup-text">
+                        Don't have an account?
+                        <a href="#" id="showSignup" class="signup-link">Sign up</a>
+                    </p>
                 </div>
 
                 <div id="signupBlock" style="display: none;">
@@ -172,5 +176,6 @@
             }
         });
     </script>
+    <script src="theme.js"></script>
 </body>
 </html>
