@@ -13,8 +13,16 @@ const router = express.Router();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '..', '..', 'uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
+    fs.promises.access(uploadDir)
+      .then(() => cb(null, uploadDir))
+      .catch(async () => {
+        try {
+          await fs.promises.mkdir(uploadDir, { recursive: true });
+          cb(null, uploadDir);
+        } catch (error) {
+          cb(error);
+        }
+      });
   },
   filename: (req, file, cb) => {
     const uniqueName = crypto.randomBytes(16).toString('hex') + path.extname(file.originalname);
@@ -79,23 +87,37 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     let { code, password, expiration } = req.body;
     if (code) {
       if (!/^\d{5}$/.test(code)) {
-        fs.unlinkSync(req.file.path);
+        await fs.promises.unlink(req.file.path);
         return res.status(400).json({ error: 'Code must be exactly 5 digits.' });
       }
       const existingFile = await FileRecord.findOne({ code });
       if (existingFile) {
-        fs.unlinkSync(req.file.path);
+        await fs.promises.unlink(req.file.path);
         return res.status(409).json({ error: 'This code is already in use.' });
       }
     } else {
       code = await generateCode();
     }
 
-    const expiresAt = parseExpiration(expiration);
+    // Anonymous uploads are capped at 24 hours regardless of the requested
+    // expiration. This limits the maximum lifetime of ownerless orphan files
+    // to a single cron cycle and prevents disk exhaustion via repeated
+    // long-lived anonymous uploads. Authenticated users retain full expiry choice.
+    const effectiveExpiration = req.user ? expiration : '24h';
+    const expiresAt = parseExpiration(effectiveExpiration);
+
+    // Sanitize the original filename before persisting it.
+    // path.basename strips any directory components (path traversal).
+    // The regex removes ASCII control characters including CR (0x0d) and LF (0x0a)
+    // that would allow HTTP header injection via the Content-Disposition header.
+    const safeName = path.basename(req.file.originalname)
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .trim();
+    const sanitizedOriginalName = safeName || 'download';
 
     const newFileRecord = new FileRecord({
       code,
-      originalName: req.file.originalname,
+      originalName: sanitizedOriginalName,
       filename: req.file.filename,
       mimetype: req.file.mimetype,
       size: req.file.size,
@@ -121,7 +143,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     });
   } catch (error) {
     console.error('Upload Error:', error);
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (req.file) {
+      try {
+        await fs.promises.access(req.file.path);
+        await fs.promises.unlink(req.file.path);
+      } catch (cleanupError) {
+        console.error('Failed to remove uploaded file after error:', cleanupError);
+      }
+    }
     res.status(500).json({ error: 'Server error during file upload.' });
   }
 });
@@ -160,8 +189,12 @@ router.get('/analytics/:code', auth, async (req, res) => {
       return res.status(404).json({ error: 'File not found with this code.' });
     }
 
-    // Check if user owns this file
-    if (fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
+    // Check if user owns this file.
+    // fileDoc.uploadedBy is null for files uploaded anonymously (without a session).
+    // Calling .toString() on null throws a TypeError, crashing the route and returning
+    // a 500. Guard the null case explicitly and return 403 instead -- anonymous files
+    // have no owner, so no authenticated user has access to their analytics.
+    if (!fileDoc.uploadedBy || fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Access denied. You can only view analytics for your own files.' });
     }
 
@@ -212,8 +245,11 @@ router.delete('/files/:code', auth, async (req, res) => {
 
     // Delete file from disk
     const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      await fs.promises.access(filePath);
+      await fs.promises.unlink(filePath);
+    } catch (error) {
+      console.error('Failed to delete file from disk:', error);
     }
 
     // Delete from DB

@@ -5,6 +5,17 @@ const FileRecord = require('../models/File');
 
 const router = express.Router();
 
+// Escapes characters that have special meaning in HTML to prevent XSS when
+// user-controlled values are interpolated into server-rendered HTML responses.
+const escapeHtml = (str) => {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+};
+
 // Helper function to get client IP
 const getClientIP = (req) => {
   return req.ip ||
@@ -21,6 +32,13 @@ router.get('/download/:code', async (req, res) => {
     const { code } = req.params;
     const { password } = req.query;
 
+    // Validate code format before using it in any DB query or HTML response.
+    // Codes are always exactly 5 digits; anything else is rejected immediately
+    // to prevent reflected XSS via malformed code values in server-rendered HTML.
+    if (!/^\d{5}$/.test(code)) {
+      return res.status(400).send('<h1>Invalid request: code must be exactly 5 digits.</h1>');
+    }
+
     const fileDoc = await FileRecord.findOne({ code });
     if (!fileDoc) {
       return res.status(404).send('<h1>File not found</h1>');
@@ -32,7 +50,9 @@ router.get('/download/:code', async (req, res) => {
     }
 
     const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-    if (!fs.existsSync(filePath)) {
+    try {
+      await fs.promises.access(filePath);
+    } catch (error) {
       return res.status(404).send('<h1>File missing from server</h1>');
     }
 
@@ -87,7 +107,7 @@ router.get('/download/:code', async (req, res) => {
             <div class="container">
               <h2>❌ Invalid Password</h2>
               <p class="error">The password you entered is incorrect.</p>
-              <a href="/download/${code}">Try Again</a>
+              <a href="/download/${escapeHtml(code)}">Try Again</a>
             </div>
           </body>
           </html>
@@ -113,8 +133,15 @@ router.get('/download/:code', async (req, res) => {
       }
     );
 
-    // Send file
-    res.download(filePath, fileDoc.originalName);
+    // Send file.
+    // Apply a second-layer sanitization of originalName at download time even
+    // though it is already sanitized at upload time. This guards against any
+    // records that existed in the database before this fix was deployed.
+    const safeDownloadName = path.basename(fileDoc.originalName)
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .trim() || 'download';
+
+    res.download(filePath, safeDownloadName);
   } catch (error) {
     console.error('Download Error:', error);
     res.status(500).send('<h1>Server Error</h1>');
