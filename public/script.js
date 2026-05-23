@@ -102,7 +102,16 @@
       dropzone.classList.remove("is-drag");
     })
   );
-  dropzone.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+  dropzone.addEventListener("drop", (e) => {
+    if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+  });
+  
+  dropzone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
 
   codeInput.addEventListener("input", () => {
     codeInput.value = codeInput.value.replace(/\D/g, "").slice(0, 5);

@@ -42,7 +42,7 @@ const fileFilter = (req, file, cb) => {
     'application/vnd.microsoft.portable-executable' // .exe
   ];
 
-  const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.msi', '.jar', '.swf', '.vbs', '.js'];
+  const dangerousExtensions = ['.exe', '.swf', '.jar', '.msi'];
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (dangerousTypes.includes(file.mimetype) || dangerousExtensions.includes(ext)) {

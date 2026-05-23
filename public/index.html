@@ -58,7 +58,7 @@
 
       <!-- Form shown before a file is uploaded -->
       <div id="uploadForm">
-        <label class="dropzone" id="dropzone">
+        <label class="dropzone" id="dropzone" tabindex="0" role="button" aria-labelledby="dzTitle dzSub">
           <input type="file" id="fileInput" hidden />
           <div class="dropzone-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -67,7 +67,7 @@
             <strong id="dzTitle">Click to choose</strong>
             <span id="dzSub">or drag and drop · any file type</span>
             <div style="margin-top: 12px;">
-              <div class="btn btn-primary btn-sm" style="pointer-events: none;">Browse Files</div>
+              <div class="btn btn-primary btn-sm">Browse Files</div>
             </div>
           </div>
         </label>
@@ -209,10 +209,10 @@
     <div class="brand" style="display: flex; flex-direction: column; gap: 8px;">
       <h3 style="margin: 0; color: var(--text); font-size: 16px;">💻 Contact Developer</h3>
       <div style="display: flex; gap: 16px; margin-top: 8px;">
-        <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank" style="display: flex; align-items: center; gap: 6px;">
+        <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px;">
           <img src="linkedin.png" height="20" width="20" alt="linkedin" style="border-radius: 4px;"> LinkedIn
         </a>
-        <a href="https://github.com/priyansh13-c" target="_blank" style="display: flex; align-items: center; gap: 6px;">
+        <a href="https://github.com/priyansh13-c" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; gap: 6px;">
           <img src="github.png" height="20" width="20" alt="github" style="background: white; border-radius: 50%;"> GitHub
         </a>
       </div>
