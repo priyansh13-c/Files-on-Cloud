@@ -36,7 +36,7 @@ router.post('/signup', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || '1d535ac217bca8d46ea132eeaadc114c9e6fe347c3ffb77dbeb6ee9cbef4da2ceb81df312184532f865b34de28177be00acea625eb63972aeb03be9c9564af25',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || '1d535ac217bca8d46ea132eeaadc114c9e6fe347c3ffb77dbeb6ee9cbef4da2ceb81df312184532f865b34de28177be00acea625eb63972aeb03be9c9564af25',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

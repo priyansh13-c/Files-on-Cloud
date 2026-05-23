@@ -9,7 +9,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || '1d535ac217bca8d46ea132eeaadc114c9e6fe347c3ffb77dbeb6ee9cbef4da2ceb81df312184532f865b34de28177be00acea625eb63972aeb03be9c9564af25');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
