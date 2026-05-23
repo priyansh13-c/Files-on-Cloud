@@ -93,9 +93,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const expiresAt = parseExpiration(expiration);
 
+    // Sanitize the original filename before persisting it.
+    // path.basename strips any directory components (path traversal).
+    // The regex removes ASCII control characters including CR (0x0d) and LF (0x0a)
+    // that would allow HTTP header injection via the Content-Disposition header.
+    const safeName = path.basename(req.file.originalname)
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .trim();
+    const sanitizedOriginalName = safeName || 'download';
+
     const newFileRecord = new FileRecord({
       code,
-      originalName: req.file.originalname,
+      originalName: sanitizedOriginalName,
       filename: req.file.filename,
       mimetype: req.file.mimetype,
       size: req.file.size,
