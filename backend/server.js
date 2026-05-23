@@ -75,9 +75,7 @@ app.use('/api', uploadRoutes);
 app.use('/', downloadRoutes);
 app.use('/api',downloadRoutes);
 
-// Legacy routes for backward compatibility (remove after frontend update)
-app.get('/api/info/:code', uploadRoutes);
-app.get('/api/download/:code', downloadRoutes);
+
 
 // Auto cleanup expired files - runs every hour
 cron.schedule('0 * * * *', async () => {
