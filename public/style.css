@@ -21,9 +21,9 @@
   --radius-sm: 10px;
   --radius-lg: 20px;
   --shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.6);
-  --font: ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI", Roboto,
+  --font: ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI", "Roboto",
     sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, "JetBrains Mono", monospace;
+  --mono: ui-monospace, "SFMono-Regular", "Menlo", "JetBrains Mono", monospace;
 }
 
 * { box-sizing: border-box; }
