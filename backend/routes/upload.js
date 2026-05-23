@@ -91,7 +91,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       code = await generateCode();
     }
 
-    const expiresAt = parseExpiration(expiration);
+    // Anonymous uploads are capped at 24 hours regardless of the requested
+    // expiration. This limits the maximum lifetime of ownerless orphan files
+    // to a single cron cycle and prevents disk exhaustion via repeated
+    // long-lived anonymous uploads. Authenticated users retain full expiry choice.
+    const effectiveExpiration = req.user ? expiration : '24h';
+    const expiresAt = parseExpiration(effectiveExpiration);
 
     const newFileRecord = new FileRecord({
       code,
@@ -160,8 +165,12 @@ router.get('/analytics/:code', auth, async (req, res) => {
       return res.status(404).json({ error: 'File not found with this code.' });
     }
 
-    // Check if user owns this file
-    if (fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
+    // Check if user owns this file.
+    // fileDoc.uploadedBy is null for files uploaded anonymously (without a session).
+    // Calling .toString() on null throws a TypeError, crashing the route and returning
+    // a 500. Guard the null case explicitly and return 403 instead -- anonymous files
+    // have no owner, so no authenticated user has access to their analytics.
+    if (!fileDoc.uploadedBy || fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Access denied. You can only view analytics for your own files.' });
     }
 
