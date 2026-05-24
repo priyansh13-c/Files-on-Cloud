@@ -399,6 +399,16 @@
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                landingPage.style.display = 'none';
+                appShell.style.display = 'block';
+                appViewActive = true;
+            } else {
+                landingPage.style.display = 'block';
+                appShell.style.display = 'none';
+                appViewActive = false;
+            }
+
             fileText.textContent = `Click or Drag & Drop to select file (max ${MAX_FILE_SIZE_MB}MB)`;
             ruleMaxSize.textContent = `${MAX_FILE_SIZE_MB} MB`;
             ruleAllowedTypes.textContent = 'All file types except those blocked below';
@@ -464,8 +474,8 @@
 
         function showLandingPage() {
             appViewActive = false;
-            landingPage.classList.remove('is-hidden');
-            appShell.classList.add('is-hidden');
+            landingPage.style.display = 'block';
+            appShell.style.display = 'none';
             homeBtn.style.display = 'none';
             requestAnimationFrame(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -474,8 +484,8 @@
 
         function showAppShell() {
             appViewActive = true;
-            landingPage.classList.add('is-hidden');
-            appShell.classList.remove('is-hidden');
+            landingPage.style.display = 'none';
+            appShell.style.display = 'block';
             homeBtn.style.display = 'inline-block';
             requestAnimationFrame(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -540,11 +550,20 @@
                     }
                 });
             }, {
-                threshold: 0.15,
-                rootMargin: '0px 0px -8% 0px'
+                threshold: 0.1,
+                rootMargin: '0px'
             });
 
-            landingRevealItems.forEach((item) => observer.observe(item));
+            landingRevealItems.forEach((item) => {
+                // If the element is already in the viewport, mark it visible immediately
+                const rect = item.getBoundingClientRect();
+                const inView = rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
+                if (inView) {
+                    item.classList.add('is-visible');
+                } else {
+                    observer.observe(item);
+                }
+            });
         }
 
         // Drag and Drop Handling
