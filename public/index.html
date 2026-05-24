@@ -45,9 +45,75 @@
     </style>
 </head>
 <body>
+    <div id="landingPage" class="landing-page">
+        <section class="landing-hero landing-reveal" data-reveal>
+            <div class="landing-hero-content">
+                <div class="landing-badge">No account needed to start</div>
+                <h1>Files on Cloud</h1>
+                <p class="landing-tagline">Upload and share files instantly, with optional login for extra control, passwords, QR links, and expiry timers.</p>
+                <div class="landing-actions">
+                    <button type="button" id="landingStartBtn" class="auth-btn landing-btn landing-btn-primary">Get Started</button>
+                    <button type="button" id="landingSignupBtn" class="auth-btn landing-btn landing-btn-secondary">Sign Up</button>
+                    <button type="button" id="landingLoginBtn" class="auth-btn landing-btn landing-btn-secondary">Login</button>
+                </div>
+            </div>
+            <div class="landing-hero-panel">
+                <div class="landing-stat">
+                    <span>Free</span>
+                    <small>start without an account</small>
+                </div>
+                <div class="landing-stat">
+                    <span>Secure</span>
+                    <small>passwords and expiry timers</small>
+                </div>
+                <div class="landing-stat">
+                    <span>Fast</span>
+                    <small>share links and QR codes</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-features landing-reveal" data-reveal>
+            <h2>Everything you need for fast sharing</h2>
+            <div class="features-grid">
+                <article class="feature-card landing-reveal" data-reveal>
+                    <div class="feature-icon">🙌</div>
+                    <h3>No Account Needed</h3>
+                    <p>Jump straight in and start uploading without creating an account.</p>
+                </article>
+                <article class="feature-card landing-reveal" data-reveal>
+                    <div class="feature-icon">🔗</div>
+                    <h3>Instant Sharing</h3>
+                    <p>Generate a share code or link and send it immediately.</p>
+                </article>
+                <article class="feature-card landing-reveal" data-reveal>
+                    <div class="feature-icon">🔒</div>
+                    <h3>Password Protection</h3>
+                    <p>Lock sensitive files with a password before anyone downloads them.</p>
+                </article>
+                <article class="feature-card landing-reveal" data-reveal>
+                    <div class="feature-icon">📷</div>
+                    <h3>QR Codes</h3>
+                    <p>Create QR access for quick scanning on phones and desktops.</p>
+                </article>
+                <article class="feature-card landing-reveal" data-reveal>
+                    <div class="feature-icon">⏳</div>
+                    <h3>Expiry Timer</h3>
+                    <p>Choose how long your file stays available before it expires automatically.</p>
+                </article>
+            </div>
+        </section>
+
+        <footer class="landing-footer landing-reveal" data-reveal>
+            <p>Files on Cloud</p>
+        </footer>
+    </div>
+
+    <div id="appShell" class="app-shell is-hidden">
     <!-- Header -->
     <div class="header">
         <div class="auth-buttons">
+            <button id="homeBtn" class="auth-btn" style="display: none;">Home</button>
             <button id="loginBtn" class="auth-btn">Login</button>
             <button id="signupBtn" class="auth-btn">Sign Up</button>
             <button id="dashboardBtn" class="auth-btn" style="display: none;">Dashboard</button>
@@ -237,21 +303,22 @@
                 <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</li>
             </ul>
         </div>
-    </div>
+        </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <div class="container">
-            <h3>💻 Contact Developer</h3>
-            <div class="social-links">
-                <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank">
-                    <span><img src="linkedin.png" height="30" width="30" alt="linkedin"></span> LinkedIn
-                </a>
-                <a href="https://github.com/priyansh13-c" target="_blank">
-                    <span><img src="github.png" height="30" width="30" alt="github"></span> GitHub
-                </a>
+        <!-- Footer -->
+        <div class="footer">
+            <div class="container">
+                <h3>💻 Contact Developer</h3>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank">
+                        <span><img src="linkedin.png" height="30" width="30" alt="linkedin"></span> LinkedIn
+                    </a>
+                    <a href="https://github.com/priyansh13-c" target="_blank">
+                        <span><img src="github.png" height="30" width="30" alt="github"></span> GitHub
+                    </a>
+                </div>
+                <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
             </div>
-            <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
         </div>
     </div>
 
@@ -272,6 +339,12 @@
 
         // DOM elements
         const uploadForm = document.getElementById('uploadForm');
+        const landingPage = document.getElementById('landingPage');
+        const appShell = document.getElementById('appShell');
+        const homeBtn = document.getElementById('homeBtn');
+        const landingStartBtn = document.getElementById('landingStartBtn');
+        const landingLoginBtn = document.getElementById('landingLoginBtn');
+        const landingSignupBtn = document.getElementById('landingSignupBtn');
         const fileInput = document.getElementById('fileInput');
         const uploadCodeInput = document.getElementById('uploadCode');
         const customFileNameInput = document.getElementById('customFileName');
@@ -320,6 +393,8 @@
         const downloadLoading = document.getElementById('downloadLoading');
         const downloadMessage = document.getElementById('downloadMessage');
         const fileInfo = document.getElementById('fileInfo');
+        const landingRevealItems = document.querySelectorAll('[data-reveal]');
+        let appViewActive = false;
 
 
         // Initialize app
@@ -329,6 +404,7 @@
             ruleAllowedTypes.textContent = 'All file types except those blocked below';
             ruleBlockedTypes.textContent = BLOCKED_EXTENSIONS.join(', ');
             ruleSecurity.textContent = 'Executable installers listed above are blocked by server validation';
+            initLandingReveal();
             if (authToken) {
                 checkAuthStatus();
             }
@@ -371,26 +447,57 @@
                 if (response.ok) {
                     const data = await response.json();
                     currentUser = data.user;
+                    appViewActive = true;
                     updateUI();
                 } else {
                     localStorage.removeItem('authToken');
                     authToken = null;
+                    updateUI();
                 }
             } catch (error) {
                 console.error('Auth check error:', error);
                 localStorage.removeItem('authToken');
                 authToken = null;
+                updateUI();
             }
+        }
+
+        function showLandingPage() {
+            appViewActive = false;
+            landingPage.classList.remove('is-hidden');
+            appShell.classList.add('is-hidden');
+            homeBtn.style.display = 'none';
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        function showAppShell() {
+            appViewActive = true;
+            landingPage.classList.add('is-hidden');
+            appShell.classList.remove('is-hidden');
+            homeBtn.style.display = 'inline-block';
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
         }
 
         function updateUI() {
             if (currentUser) {
+                showAppShell();
                 loginBtn.textContent = `Hi, ${currentUser.username} (Logout)`;
                 loginBtn.onclick = logout;
                 signupBtn.style.display = 'none';
                 dashboardBtn.style.display = 'inline-block';
                 dashboardBtn.onclick = () => window.location.href = 'dashboard.html';
+            } else if (appViewActive) {
+                showAppShell();
+                loginBtn.textContent = 'Login';
+                loginBtn.onclick = () => window.location.href = 'auth.html?mode=login';
+                signupBtn.style.display = 'inline-block';
+                dashboardBtn.style.display = 'none';
             } else {
+                showLandingPage();
                 loginBtn.textContent = 'Login';
                 loginBtn.onclick = () => window.location.href = 'auth.html?mode=login';
                 signupBtn.style.display = 'inline-block';
@@ -402,6 +509,7 @@
             localStorage.removeItem('authToken');
             authToken = null;
             currentUser = null;
+            appViewActive = false;
             updateUI();
             showMessage(uploadMessage, 'Logged out successfully', 'success');
         }
@@ -412,8 +520,32 @@
         }
 
         // Event listeners
+        homeBtn.addEventListener('click', showLandingPage);
+        landingStartBtn.addEventListener('click', showAppShell);
         loginBtn.addEventListener('click', () => goToAuthPage('login'));
         signupBtn.addEventListener('click', () => goToAuthPage('signup'));
+        landingLoginBtn.addEventListener('click', () => goToAuthPage('login'));
+        landingSignupBtn.addEventListener('click', () => goToAuthPage('signup'));
+
+        function initLandingReveal() {
+            if (!landingRevealItems.length) {
+                return;
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.15,
+                rootMargin: '0px 0px -8% 0px'
+            });
+
+            landingRevealItems.forEach((item) => observer.observe(item));
+        }
 
         // Drag and Drop Handling
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
