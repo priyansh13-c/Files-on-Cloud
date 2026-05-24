@@ -47,6 +47,10 @@
                     <button type="button" id="clearFileBtn" class="file-preview-clear">Clear selection</button>
                 </div>
 
+                <input type="text"
+                       id="customFileName"
+                       placeholder="Custom file name (optional)">
+
                 <input type="number"
                        id="uploadCode"
                        placeholder="Enter 5-digit code (optional - we'll generate one if empty)"
@@ -214,6 +218,7 @@
         const uploadForm = document.getElementById('uploadForm');
         const fileInput = document.getElementById('fileInput');
         const uploadCodeInput = document.getElementById('uploadCode');
+        const customFileNameInput = document.getElementById('customFileName');
         const filePasswordInput = document.getElementById('filePassword');
         const expirationSelect = document.getElementById('expirationTime');
         const uploadBtn = document.getElementById('uploadBtn');
@@ -615,6 +620,7 @@
             try {
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
+                formData.append('customName', customFileNameInput.value);
                 if (uploadCodeInput.value) {
                     formData.append('code', uploadCodeInput.value);
                 }

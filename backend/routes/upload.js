@@ -84,7 +84,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
-    let { code, password, expiration } = req.body;
+    let { code, password, expiration, customName } = req.body;
     if (code) {
       if (!/^\d{5}$/.test(code)) {
         await fs.promises.unlink(req.file.path);
@@ -115,9 +115,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       .trim();
     const sanitizedOriginalName = safeName || 'download';
 
+    const displayName = customName && customName.trim()
+      ? path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim() || sanitizedOriginalName
+      : sanitizedOriginalName;
+
     const newFileRecord = new FileRecord({
       code,
       originalName: sanitizedOriginalName,
+      displayName,
       filename: req.file.filename,
       mimetype: req.file.mimetype,
       size: req.file.size,
