@@ -114,6 +114,15 @@
                 </div>
                 
                 <div class="result-content">
+                    <div class="share-code-section">
+                        <span class="result-icon">🔢</span>
+                        <span class="section-title">Share Code</span>
+                        <div class="share-code-container">
+                            <input type="text" id="shareCodeInput" readonly>
+                            <button type="button" id="copyCodeBtn" class="copy-btn" aria-label="Copy share code">📋</button>
+                        </div>
+                    </div>
+
                     <div class="share-link-section">
                         <span class="result-icon">🔗</span>
                         <span class="section-title">Share Link</span>
@@ -221,6 +230,8 @@
         const uploadLoading = document.getElementById('uploadLoading');
         const uploadMessage = document.getElementById('uploadMessage');
         const resultSection = document.getElementById('resultSection');
+        const shareCodeInput = document.getElementById('shareCodeInput');
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
         const shareLinkInput = document.getElementById('shareLinkInput');
         const copyLinkBtn = document.getElementById('copyLinkBtn');
         const qrCode = document.getElementById('qrCode');
@@ -642,6 +653,7 @@
                     showMessage(uploadMessage, `✅ ${result.message}`, 'success');
                     
                     // Show result section
+                    shareCodeInput.value = result.code;
                     shareLinkInput.value = result.downloadUrl;
                     qrCode.src = result.qrCode;
                     resultSection.style.display = 'block';
@@ -664,6 +676,28 @@
                 uploadBtn.disabled = false;
                 uploadLoading.style.display = 'none';
             }
+        });
+
+        // Copy link functionality
+        copyCodeBtn.addEventListener('click', function() {
+            const code = shareCodeInput.value;
+            navigator.clipboard.writeText(code).then(() => {
+                copyCodeBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyCodeBtn.textContent = '📋';
+                }, 2000);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                copyCodeBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyCodeBtn.textContent = '📋';
+                }, 2000);
+            });
         });
 
         // Copy link functionality
