@@ -10,6 +10,7 @@ const downloadSchema = new mongoose.Schema({
 const fileSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true, length: 5 },
   originalName: { type: String, required: true },
+  displayName: { type: String },
   filename: { type: String, required: true },
   mimetype: { type: String, required: true },
   size: { type: Number, required: true },

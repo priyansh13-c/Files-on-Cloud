@@ -222,21 +222,26 @@
                 return;
             }
 
-            filesTableBody.innerHTML = files.map(file => `
-                <tr>
-                    <td><strong>${file.originalName}</strong></td>
-                    <td><span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${file.code}</span></td>
-                    <td>${formatBytes(file.size)}</td>
-                    <td>${new Date(file.uploadDate).toLocaleDateString()}</td>
-                    <td>${new Date(file.expiresAt).toLocaleDateString()}</td>
-                    <td>${file.downloadCount}</td>
-                    <td style="min-width: 250px;">
-                        <button class="dashboard-action-btn" onclick="copyLink('${file.code}')">Copy Link</button>
-                        <button class="dashboard-action-btn" onclick="openAnalytics('${file.code}')">Analytics</button>
-                        <button class="dashboard-action-btn delete" onclick="deleteFile('${file.code}')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
+            filesTableBody.innerHTML = files.map(file => {
+                const displayName = file.displayName || file.originalName;
+                const escapedName = displayName.replace(/'/g, "\\'");
+                return `
+                    <tr>
+                        <td><strong>${displayName}</strong></td>
+                        <td><span style="font-family:monospace; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">${file.code}</span></td>
+                        <td>${formatBytes(file.size)}</td>
+                        <td>${new Date(file.uploadDate).toLocaleDateString()}</td>
+                        <td>${new Date(file.expiresAt).toLocaleDateString()}</td>
+                        <td>${file.downloadCount}</td>
+                        <td style="min-width: 250px;">
+                            <button class="dashboard-action-btn" onclick="copyLink('${file.code}')">Copy Link</button>
+                            <button class="dashboard-action-btn" onclick="openAnalytics('${file.code}')">Analytics</button>
+                            <button class="dashboard-action-btn" onclick="renameFile('${file.code}', '${escapedName}')">Rename</button>
+                            <button class="dashboard-action-btn delete" onclick="deleteFile('${file.code}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function copyLink(code) {
@@ -246,6 +251,40 @@
             }).catch(() => {
                 showMessage(dashboardMessage, '❌ Failed to copy link.', 'error');
             });
+        }
+
+        async function renameFile(code, currentName) {
+            const newName = prompt("Enter new filename:", currentName);
+            if (newName === null) return; // User cancelled
+            const trimmedName = newName.trim();
+            if (!trimmedName) {
+                alert("Filename cannot be empty.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/files/${code}/rename`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ customName: trimmedName })
+                });
+
+                if (response.ok) {
+                    showMessage(dashboardMessage, '✅ File renamed successfully.', 'success');
+                    dashboardLoading.style.display = 'block';
+                    filesTableBody.innerHTML = '';
+                    fetchMyFiles();
+                } else {
+                    const result = await response.json();
+                    showMessage(dashboardMessage, `❌ ${result.error || 'Failed to rename file.'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Rename error:', error);
+                showMessage(dashboardMessage, '❌ Network error while renaming file.', 'error');
+            }
         }
 
         async function deleteFile(code) {

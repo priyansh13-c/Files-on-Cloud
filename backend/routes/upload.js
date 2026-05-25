@@ -115,9 +115,17 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       .trim();
     const sanitizedOriginalName = safeName || 'download';
 
-    const displayName = customName && customName.trim()
-      ? path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim() || sanitizedOriginalName
-      : sanitizedOriginalName;
+    const originalExt = path.extname(sanitizedOriginalName);
+    let displayName = sanitizedOriginalName;
+    if (customName && customName.trim()) {
+      let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
+      if (cleanedCustomName) {
+        if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+          cleanedCustomName += originalExt;
+        }
+        displayName = cleanedCustomName;
+      }
+    }
 
     const newFileRecord = new FileRecord({
       code,
@@ -170,7 +178,9 @@ router.get('/info/:code', async (req, res) => {
     }
 
     res.json({
-      originalName: fileDoc.originalName,
+      originalName: fileDoc.displayName || fileDoc.originalName,
+      realOriginalName: fileDoc.originalName,
+      displayName: fileDoc.displayName || fileDoc.originalName,
       size: fileDoc.size,
       uploadDate: fileDoc.uploadDate,
       downloadCount: fileDoc.downloadCount,
@@ -264,6 +274,48 @@ router.delete('/files/:code', auth, async (req, res) => {
   } catch (error) {
     console.error('Delete file error:', error);
     res.status(500).json({ error: 'Failed to delete file.' });
+  }
+});
+
+// Rename user file manually
+router.put('/files/:code/rename', auth, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { customName } = req.body;
+
+    if (!customName || !customName.trim()) {
+      return res.status(400).json({ error: 'New filename is required.' });
+    }
+
+    const fileDoc = await FileRecord.findOne({ code });
+
+    if (!fileDoc) {
+      return res.status(404).json({ error: 'File not found.' });
+    }
+
+    if (!fileDoc.uploadedBy || fileDoc.uploadedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. You can only rename your own files.' });
+    }
+
+    const originalExt = path.extname(fileDoc.originalName);
+    let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
+    
+    if (!cleanedCustomName) {
+      return res.status(400).json({ error: 'Invalid filename.' });
+    }
+
+    // Append the original file extension if missing from the new custom filename
+    if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+      cleanedCustomName += originalExt;
+    }
+
+    fileDoc.displayName = cleanedCustomName;
+    await fileDoc.save();
+
+    res.json({ success: true, message: 'File renamed successfully.', displayName: cleanedCustomName });
+  } catch (error) {
+    console.error('Rename file error:', error);
+    res.status(500).json({ error: 'Failed to rename file.' });
   }
 });
 

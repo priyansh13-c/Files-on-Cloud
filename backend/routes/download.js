@@ -134,10 +134,11 @@ router.get('/download/:code', async (req, res) => {
     );
 
     // Send file.
-    // Apply a second-layer sanitization of originalName at download time even
+    // Apply a second-layer sanitization of displayName (or originalName) at download time even
     // though it is already sanitized at upload time. This guards against any
     // records that existed in the database before this fix was deployed.
-    const safeDownloadName = path.basename(fileDoc.originalName)
+    const nameToDownload = fileDoc.displayName || fileDoc.originalName;
+    const safeDownloadName = path.basename(nameToDownload)
       .replace(/[\x00-\x1f\x7f]/g, '')
       .trim() || 'download';
 
