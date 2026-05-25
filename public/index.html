@@ -3,63 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File On Cloud</title>
+    <title>Files on Cloud — Secure File Sharing & Cloud Storage</title>
+    <meta name="description" content="Upload, share, and manage files securely in the cloud. Password protection, QR codes, auto-expiry, and instant 5-digit code sharing.">
+    <meta name="theme-color" content="#0a0a1a">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Password toggle: keep both elements inside same wrapper so the icon appears inside the input border */
-        .password-container {
-            position: relative;
-            width: 100%;
-        }
-
-        /* Make room for the toggle inside the input */
-        .password-input {
-            width: 100%;
-            padding-right: 45px; /* ensure text doesn't overlap the icon (requested) */
-            box-sizing: border-box;
-        }
-
-        /* Toggle sits inside the input on the right side */
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent; /* let input background show through so it looks part of the field */
-            border: none;
-            color: var(--text-primary);
-            font-size: 1.05rem;
-            cursor: pointer;
-            padding: 4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-        }
-
-        .password-toggle:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.08);
-            border-radius: 6px;
-        }
-    </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="auth-buttons">
+
+    <!-- Animated Background Orbs -->
+    <div class="bg-animation" aria-hidden="true">
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+    </div>
+
+    <!-- Sticky Navbar -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="navbar-brand">
+            <img src="backup-file.png" alt="Files on Cloud logo">
+            <span>Files on Cloud</span>
+        </a>
+        <div class="navbar-actions">
             <button id="loginBtn" class="auth-btn">Login</button>
             <button id="signupBtn" class="auth-btn">Sign Up</button>
             <button id="dashboardBtn" class="auth-btn" style="display: none;">Dashboard</button>
             <button id="themeToggle" class="auth-btn">🌙</button>
         </div>
-        <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
-        <h1>Files on Cloud</h1>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="heroSection">
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    Open Source &middot; Free Forever
+                </div>
+                <h1>Share Files<br><span class="gradient-text">Across the Cloud</span></h1>
+                <p class="hero-subtitle">Upload any file, get a 5-digit code, and share instantly. Password protection, QR codes, and auto-expiry are built in from the start.</p>
+                <div class="hero-cta">
+                    <a href="#uploadSection" class="btn-primary" onclick="event.preventDefault(); document.getElementById('uploadSection').scrollIntoView({behavior:'smooth'})">
+                        🚀 Start Uploading
+                    </a>
+                    <a href="#downloadSection" class="btn-secondary" onclick="event.preventDefault(); document.getElementById('downloadSection').scrollIntoView({behavior:'smooth'})">
+                        📥 Download a File
+                    </a>
+                </div>
+                <div class="hero-chips" aria-label="Key highlights">
+                    <span class="hero-chip">5-digit sharing code</span>
+                    <span class="hero-chip">QR + direct link</span>
+                    <span class="hero-chip">Auto-expiry protection</span>
+                </div>
+                <a href="#uploadSection" class="hero-scroll-hint" onclick="event.preventDefault(); document.getElementById('uploadSection').scrollIntoView({behavior:'smooth'})">
+                    Scroll down to access Upload and Download tools ↓
+                </a>
+            </div>
+
+            <aside class="hero-panel" aria-label="Quick sharing overview">
+                <div class="hero-panel-header">
+                    <span class="hero-panel-label">Secure sharing in minutes</span>
+                    <h2>Upload once. Share anywhere.</h2>
+                    <p>A compact dashboard-style preview of the flow users will follow, keeping the same visual language as the rest of the app.</p>
+                </div>
+
+                <div class="hero-flow">
+                    <div class="flow-step">
+                        <span class="flow-step-index">1</span>
+                        <div>
+                            <strong>Select a file</strong>
+                            <p>Drag, drop, or browse from your device.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <span class="flow-step-index">2</span>
+                        <div>
+                            <strong>Set protection</strong>
+                            <p>Add a password, expiry time, or custom code.</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <span class="flow-step-index">3</span>
+                        <div>
+                            <strong>Share instantly</strong>
+                            <p>Send the code, link, or QR to anyone.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-panel-footer">
+                    <span>20MB max upload</span>
+                    <span>1 hour to 7 days expiry</span>
+                    <span>Downloads tracked</span>
+                </div>
+            </aside>
+        </div>
+        <div class="scroll-indicator" onclick="document.getElementById('uploadSection').scrollIntoView({behavior:'smooth'})">▼</div>
+    </section>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="stat-value">20MB</span>
+            <span class="stat-label">Max Upload</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">7 Days</span>
+            <span class="stat-label">Max Retention</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">∞</span>
+            <span class="stat-label">Downloads</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">100%</span>
+            <span class="stat-label">Free</span>
+        </div>
     </div>
 
     <div class="container">
         <!-- Upload Section -->
-        <div class="section">
+        <div class="section" id="uploadSection">
             <h2 class="upload-heading">
                 <span>🔼 Upload File</span>
                 <button type="button" id="uploadRulesBtn" class="rules-info-btn" aria-haspopup="dialog" aria-controls="uploadRulesModal" aria-label="View upload rules">ℹ️</button>
@@ -91,23 +161,23 @@
 
                 <input type="number"
                        id="uploadCode"
-                       placeholder="Enter 5-digit code (optional - we'll generate one if empty)"
+                       placeholder="Enter 5-digit code (optional — we'll generate one if empty)"
                        min="10000"
                        max="99999">
 
-                                <div style="position: relative; width: 100%; display: flex; align-items: center;">
-    <input 
-        type="password" 
-        id="filePassword" 
-        placeholder="Password protect file (optional)"
-        style="width: 100%; padding-right: 50px; box-sizing: border-box; border-radius: 8px;"
-    />
-    <button 
-        type="button" 
-        id="togglePassword"
-        style="position: absolute; right: 10px ; top: 33%; transform: translateY(-50%); margin: 0; background: none; border: none; cursor: pointer; font-size: 18px; z-index: 10;"
-    >🔒</button>
-</div>
+                <div style="position: relative; width: 100%; display: flex; align-items: center;">
+                    <input
+                        type="password"
+                        id="filePassword"
+                        placeholder="Password protect file (optional)"
+                        style="width: 100%; padding-right: 50px; box-sizing: border-box; border-radius: 14px;"
+                    />
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        style="position: absolute; right: 10px; top: 33%; transform: translateY(-50%); margin: 0; background: none; border: none; cursor: pointer; font-size: 18px; z-index: 10;"
+                    >🔒</button>
+                </div>
 
                 <select id="expirationTime">
                     <option value="24h">Expires in 24 hours</option>
@@ -115,8 +185,10 @@
                     <option value="6h">Expires in 6 hours</option>
                     <option value="7d">Expires in 7 days</option>
                 </select>
-
-                <button type="submit" id="uploadBtn">Upload File</button>
+                <!--wrapped the button component in a div to center it and make it more accessible-->
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" id="uploadBtn">Upload File</button>
+                </div>
             </form>
 
             <div class="loading" id="uploadLoading" style="display: none;">
@@ -161,7 +233,6 @@
             <div class="result-card">
                 <div class="result-header">
                     <span class="result-icon"></span>
-
                 </div>
                 
                 <div class="result-content">
@@ -195,7 +266,7 @@
         </div>
 
         <!-- Download Section -->
-        <div class="section">
+        <div class="section" id="downloadSection">
             <h2>🔽 Download File</h2>
             <form id="downloadForm">
                 <input type="number" 
@@ -234,10 +305,48 @@
                 <li><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size, and download count before downloading.</li>
                 <li><strong>Analytics:</strong> View download statistics for your uploaded files through your account.</li>
                 <li><strong>Security:</strong> Files are temporarily stored and automatically deleted after expiration for your privacy and security.</li>
-                <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</li>
+                <li><strong>File Types:</strong> All file types are supported — documents, images, videos, archives, and more!</li>
             </ul>
         </div>
     </div>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <h2>Why <span class="gradient-text">Files on Cloud</span>?</h2>
+        <p class="features-subtitle">Everything you need for fast, secure file sharing — no bloat, no sign-up required to download.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🔐</span>
+                <h3>Password Protection</h3>
+                <p>Lock your files with a password. Only people who know the password can download — adding an extra layer of security.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3>Lightning Fast</h3>
+                <p>Upload and share in seconds. No slow processing, no queues — your file is ready to share the moment it uploads.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h3>Works Everywhere</h3>
+                <p>Fully responsive design that works seamlessly on phones, tablets, and desktops. Share from any device, anywhere.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔗</span>
+                <h3>Easy Sharing</h3>
+                <p>Share via a simple 5-digit code, a direct link, or scan-ready QR code. Multiple ways to get files to the people who need them.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⏰</span>
+                <h3>Auto-Expiry</h3>
+                <p>Files are automatically deleted after the chosen expiry window — from 1 hour to 7 days. Your data doesn't linger.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3>File Analytics</h3>
+                <p>Track how many times your file has been downloaded. Full visibility into your shared files from your dashboard.</p>
+            </div>
+        </div>
+    </section>
 
     <!-- Footer -->
     <div class="footer">
@@ -245,18 +354,20 @@
             <h3>💻 Contact Developer</h3>
             <div class="social-links">
                 <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank">
-                    <span><img src="linkedin.png" height="30" width="30" alt="linkedin"></span> LinkedIn
+                    <span><img src="linkedin.png" height="24" width="24" alt="linkedin"></span> LinkedIn
                 </a>
                 <a href="https://github.com/priyansh13-c" target="_blank">
-                    <span><img src="github.png" height="30" width="30" alt="github"></span> GitHub
+                    <span><img src="github.png" height="24" width="24" alt="github"></span> GitHub
                 </a>
             </div>
-            <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
+            <p>&copy; 2026 Files on Cloud. Made with <span class="heart">❤️</span></p>
         </div>
     </div>
 
     <script>
-        const API_BASE = "";
+        const API_BASE = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && window.location.port === '5500'
+            ? 'http://localhost:3001'
+            : '';
         const MAX_FILE_SIZE_MB = 20;
         const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
         const BLOCKED_EXTENSIONS = Array.from(new Set([
@@ -321,6 +432,25 @@
         const downloadMessage = document.getElementById('downloadMessage');
         const fileInfo = document.getElementById('fileInfo');
 
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // Scroll-reveal for sections
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.section, .instructions, .feature-card, .stat-item').forEach(el => {
+            revealObserver.observe(el);
+        });
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
@@ -493,26 +623,6 @@
                 closePreviewModal();
             }
             if (event.key === 'Escape' && uploadRulesModal.classList.contains('open')) {
-                closeUploadRules();
-            }
-        });
-
-        function openUploadRules() {
-            uploadRulesModal.classList.add('open');
-            uploadRulesModal.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('modal-open');
-        }
-
-        function closeUploadRules() {
-            uploadRulesModal.classList.remove('open');
-            uploadRulesModal.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('modal-open');
-        }
-
-        uploadRulesBtn.addEventListener('click', openUploadRules);
-        uploadRulesClose.addEventListener('click', closeUploadRules);
-        uploadRulesModal.addEventListener('click', (event) => {
-            if (event.target === uploadRulesModal) {
                 closeUploadRules();
             }
         });
@@ -710,6 +820,7 @@
                     shareLinkInput.value = result.downloadUrl;
                     qrCode.src = result.qrCode;
                     resultSection.style.display = 'block';
+                    resultSection.classList.add('visible');
                     
                     // Scroll to result section
                     resultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -717,6 +828,8 @@
                     // Reset form after a delay
                     setTimeout(() => {
                         uploadForm.reset();
+                        // after the form is reset , set the password field to empty string to get new password for next upload if user wants to set password for next upload 
+                        filePasswordInput.value='';
                         resetFileInput();
                     }, 100);
                 } else {
@@ -858,28 +971,27 @@
             }, 8000); // Increased to 8 seconds for better visibility
         }
 
-        // Page load animation
+        // Page load animation — trigger visibility for sections already in viewport
         document.addEventListener('DOMContentLoaded', function() {
             const sections = document.querySelectorAll('.section, .instructions');
             sections.forEach((section, index) => {
                 setTimeout(() => {
-                    section.style.opacity = '1';
-                    section.style.transform = 'translateY(0)';
+                    section.classList.add('visible');
                 }, index * 150);
             });
         });
 
-        // Alag se window load par toggle bind karna
-document.getElementById('togglePassword').addEventListener('click', function() {
-    const input = document.getElementById('filePassword');
-    if (input.type === 'password') {
-        input.type = 'text';
-        this.textContent = '🔓';
-    } else {
-        input.type = 'password';
-        this.textContent = '🔒';
-    }
-});
+        // Password toggle
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const input = document.getElementById('filePassword');
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.textContent = '🔓';
+            } else {
+                input.type = 'password';
+                this.textContent = '🔒';
+            }
+        });
     </script>
     <script src="theme.js"></script>
 </body>
