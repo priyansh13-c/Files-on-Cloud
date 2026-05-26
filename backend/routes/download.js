@@ -117,7 +117,7 @@ router.get('/download/:code', async (req, res) => {
 
     // Record download analytics
     const clientIP = getClientIP(req);
-    const userAgent = req.get('User-Agent') || 'unknown';
+    const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
 
     await FileRecord.updateOne(
       { code },
@@ -125,9 +125,8 @@ router.get('/download/:code', async (req, res) => {
         $inc: { downloadCount: 1 },
         $push: {
           downloads: {
-            ip: clientIP,
-            userAgent: userAgent,
-            time: new Date()
+            $each: [{ ip: clientIP, userAgent, time: new Date() }],
+            $slice: -500
           }
         }
       }

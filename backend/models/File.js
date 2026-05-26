@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 const downloadSchema = new mongoose.Schema({
   ip: { type: String, required: true },
-  userAgent: { type: String, required: true },
+  userAgent: { type: String, required: true, maxlength: 256 },
   time: { type: Date, default: Date.now }
 });
 
