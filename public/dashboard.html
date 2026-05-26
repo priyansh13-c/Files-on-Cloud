@@ -312,6 +312,15 @@
             }
         }
 
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+        }
+
         async function openAnalytics(code) {
             analyticsModal.classList.add('show');
             document.getElementById('analyticsLoading').style.display = 'block';
@@ -330,9 +339,9 @@
                     if (data.recentDownloads && data.recentDownloads.length > 0) {
                         list.innerHTML = data.recentDownloads.map(d => `
                             <li>
-                                <strong>IP:</strong> ${d.ip.replace(/::ffff:/, '')} <br>
-                                <strong>Time:</strong> ${new Date(d.time).toLocaleString()} <br>
-                                <span style="font-size:0.8rem;color:#aaa;">${d.userAgent}</span>
+                                <strong>IP:</strong> ${escapeHtml(d.ip.replace(/::ffff:/, ''))} <br>
+                                <strong>Time:</strong> ${escapeHtml(new Date(d.time).toLocaleString())} <br>
+                                <span style="font-size:0.8rem;color:#aaa;">${escapeHtml(d.userAgent)}</span>
                             </li>
                         `).join('');
                     } else {
