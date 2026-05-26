@@ -30,25 +30,30 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to reject dangerous file types
+// Allowlist of file extensions that may be uploaded.
+// Client-supplied MIME types are not trusted for security decisions because
+// the Content-Type header is fully attacker-controlled. Extension-based
+// allowlisting is the primary gate; a magic-byte check can be layered on
+// top as defence-in-depth if needed in the future.
+const ALLOWED_EXTENSIONS = new Set([
+  // Documents
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.txt', '.csv', '.md', '.rtf', '.odt', '.ods', '.odp',
+  // Images
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff',
+  // Audio / Video
+  '.mp4', '.mp3', '.wav', '.avi', '.mov', '.mkv', '.flac', '.ogg', '.webm',
+  // Archives
+  '.zip', '.tar', '.gz', '.7z', '.rar',
+  // Data / Config (non-executable)
+  '.json', '.xml', '.yaml', '.yml', '.toml', '.ini',
+]);
+
 const fileFilter = (req, file, cb) => {
-  const dangerousTypes = [
-    'application/x-msdownload', // .exe
-    'application/x-msdos-program', // .exe
-    'application/x-executable', // .exe
-    'application/x-shockwave-flash', // .swf
-    'application/java-archive', // .jar
-    'application/x-ms-installer', // .msi
-    'application/vnd.microsoft.portable-executable' // .exe
-  ];
-
-  const dangerousExtensions = ['.exe', '.swf', '.jar', '.msi'];
   const ext = path.extname(file.originalname).toLowerCase();
-
-  if (dangerousTypes.includes(file.mimetype) || dangerousExtensions.includes(ext)) {
-    return cb(new Error('File type not allowed for security reasons.'), false);
+  if (!ALLOWED_EXTENSIONS.has(ext)) {
+    return cb(new Error(`File type "${ext || '(none)'}" is not permitted.`), false);
   }
-
   cb(null, true);
 };
 
