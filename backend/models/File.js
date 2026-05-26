@@ -37,7 +37,8 @@ fileSchema.pre('save', async function(next) {
 
 // Compare password method
 fileSchema.methods.comparePassword = async function(candidatePassword) {
-  if (!this.password) return true; // No password set
+  if (!this.password) return false; // No stored hash: deny access
+  if (!candidatePassword) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

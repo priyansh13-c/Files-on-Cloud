@@ -26,11 +26,38 @@ const getClientIP = (req) => {
          'unknown';
 };
 
-// Download file route
+// Shared helper: record analytics and stream the file to the client.
+const serveFile = async (req, res, fileDoc) => {
+  const clientIP = getClientIP(req);
+  const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
+
+  await FileRecord.updateOne(
+    { code: fileDoc.code },
+    {
+      $inc: { downloadCount: 1 },
+      $push: {
+        downloads: {
+          $each: [{ ip: clientIP, userAgent, time: new Date() }],
+          $slice: -500
+        }
+      }
+    }
+  );
+
+  const nameToDownload = fileDoc.displayName || fileDoc.originalName;
+  const safeDownloadName = path.basename(nameToDownload)
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .trim() || 'download';
+
+  const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
+  res.download(filePath, safeDownloadName);
+};
+
+// Download file route (GET) -- shows password form for protected files,
+// streams file directly for unprotected ones.
 router.get('/download/:code', async (req, res) => {
   try {
     const { code } = req.params;
-    const { password } = req.query;
 
     // Validate code format before using it in any DB query or HTML response.
     // Codes are always exactly 5 digits; anything else is rejected immediately
@@ -58,92 +85,103 @@ router.get('/download/:code', async (req, res) => {
 
     // Check password if file is protected
     if (fileDoc.password) {
-      if (!password) {
-        // Return password prompt page
-        return res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Password Required</title>
-            <style>
-              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-              .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-              input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-              button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-              button:hover { background: #0056b3; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h2>🔒 Password Protected File</h2>
-              <p>This file requires a password to download.</p>
-              <form method="GET">
-                <input type="password" name="password" placeholder="Enter password" required>
-                <br>
-                <button type="submit">Download File</button>
-              </form>
-            </div>
-          </body>
-          </html>
-        `);
-      }
-
-      const isValidPassword = await fileDoc.comparePassword(password);
-      if (!isValidPassword) {
-        return res.status(401).send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Invalid Password</title>
-            <style>
-              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-              .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-              .error { color: #dc3545; margin: 20px 0; }
-              a { color: #007bff; text-decoration: none; }
-              a:hover { text-decoration: underline; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h2>❌ Invalid Password</h2>
-              <p class="error">The password you entered is incorrect.</p>
-              <a href="/download/${escapeHtml(code)}">Try Again</a>
-            </div>
-          </body>
-          </html>
-        `);
-      }
+      // Render the password prompt form. The form submits via POST so the
+      // password never appears in the URL, server logs, or browser history.
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Password Required</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+            .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+            button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+            button:hover { background: #0056b3; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2>🔒 Password Protected File</h2>
+            <p>This file requires a password to download.</p>
+            <form method="POST" action="/download/${escapeHtml(code)}/verify">
+              <input type="password" name="password" placeholder="Enter password" required>
+              <br>
+              <button type="submit">Download File</button>
+            </form>
+          </div>
+        </body>
+        </html>
+      `);
     }
 
-    // Record download analytics
-    const clientIP = getClientIP(req);
-    const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
-
-    await FileRecord.updateOne(
-      { code },
-      {
-        $inc: { downloadCount: 1 },
-        $push: {
-          downloads: {
-            $each: [{ ip: clientIP, userAgent, time: new Date() }],
-            $slice: -500
-          }
-        }
-      }
-    );
-
-    // Send file.
-    // Apply a second-layer sanitization of displayName (or originalName) at download time even
-    // though it is already sanitized at upload time. This guards against any
-    // records that existed in the database before this fix was deployed.
-    const nameToDownload = fileDoc.displayName || fileDoc.originalName;
-    const safeDownloadName = path.basename(nameToDownload)
-      .replace(/[\x00-\x1f\x7f]/g, '')
-      .trim() || 'download';
-
-    res.download(filePath, safeDownloadName);
+    await serveFile(req, res, fileDoc);
   } catch (error) {
     console.error('Download Error:', error);
+    res.status(500).send('<h1>Server Error</h1>');
+  }
+});
+
+// Password verification route (POST) -- receives the password in the request
+// body (never in the URL) and streams the file if the password is correct.
+router.post('/download/:code/verify', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { password } = req.body;
+
+    if (!/^\d{5}$/.test(code)) {
+      return res.status(400).send('<h1>Invalid request: code must be exactly 5 digits.</h1>');
+    }
+
+    const fileDoc = await FileRecord.findOne({ code });
+    if (!fileDoc) {
+      return res.status(404).send('<h1>File not found</h1>');
+    }
+
+    if (new Date() > fileDoc.expiresAt) {
+      return res.status(410).send('<h1>File has expired and been deleted</h1>');
+    }
+
+    const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      return res.status(404).send('<h1>File missing from server</h1>');
+    }
+
+    if (!fileDoc.password) {
+      return res.redirect(`/download/${escapeHtml(code)}`);
+    }
+
+    const isValidPassword = await fileDoc.comparePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Invalid Password</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+            .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .error { color: #dc3545; margin: 20px 0; }
+            a { color: #007bff; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2>Invalid Password</h2>
+            <p class="error">The password you entered is incorrect.</p>
+            <a href="/download/${escapeHtml(code)}">Try Again</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    await serveFile(req, res, fileDoc);
+  } catch (error) {
+    console.error('Verify Download Error:', error);
     res.status(500).send('<h1>Server Error</h1>');
   }
 });
