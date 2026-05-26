@@ -1,48 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File On Cloud</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Password toggle: keep both elements inside same wrapper so the icon appears inside the input border */
-        .password-container {
-            position: relative;
-            width: 100%;
-        }
-
-        /* Make room for the toggle inside the input */
-        .password-input {
-            width: 100%;
-            padding-right: 45px; /* ensure text doesn't overlap the icon (requested) */
-            box-sizing: border-box;
-        }
-
-        /* Toggle sits inside the input on the right side */
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent; /* let input background show through so it looks part of the field */
-            border: none;
-            color: var(--text-primary);
-            font-size: 1.05rem;
-            cursor: pointer;
-            padding: 4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-        }
-
-        .password-toggle:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102,126,234,0.08);
-            border-radius: 6px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Files on Cloud — Share files with a 5-digit code</title>
+  <meta name="description" content="Upload up to 20MB, share with a 5-digit code or QR. Password protect, set expiry from 1 hour to 7 days." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://api.qrserver.com" />
+  <script src="theme.js"></script>
 </head>
 <body>
     <div id="landingPage" class="landing-page">
@@ -121,187 +86,130 @@
         </div>
         <span><img src="backup-file.png" height="60" width="60" alt="backup"></span>
         <h1>Files on Cloud</h1>
+  <!-- The Top Navigation Bar -->
+  <header class="nav">
+    <a href="#" class="brand">
+      <img src="backup-file.png" height="32" width="32" alt="backup" class="brand-img" style="border-radius: 6px;">
+      <span>Files on Cloud</span>
+    </a>
+    <nav class="nav-links" style="display: flex; gap: 8px;">
+      <a href="#workspace" class="btn btn-ghost btn-sm">Upload</a>
+      <a href="#workspace" class="btn btn-ghost btn-sm" data-tab="download">Download</a>
+      <a href="#instructions" class="btn btn-ghost btn-sm">Instructions</a>
+    </nav>
+    <div class="nav-cta" style="display: flex; align-items: center; gap: 8px;">
+      <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
+      <button class="btn btn-ghost" id="loginBtn">Login</button>
+      <button class="btn btn-primary" id="signupBtn">Sign Up</button>
+      <button class="btn btn-outline" id="dashboardBtn" style="display: none;">Dashboard</button>
+    </div>
+  </header>
+
+  <!-- Welcome Header (Hero Section) -->
+  <section class="hero">
+    <div class="pill">
+      <span class="dot"></span> Share files instantly — no account needed
+    </div>
+    <h1>Send files with a <span class="accent">5-digit code</span>.</h1>
+    <p class="lede">
+      Drop a file, get a code and QR. Optional password, auto-expire from
+      1 hour to 7 days. Up to 20&nbsp;MB, any file type.
+    </p>
+
+  </section>
+
+  <!-- The Core Workspace: Toggles between Uploading and Downloading -->
+  <section id="workspace" class="workspace">
+    <div class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="upload" role="tab">Upload</button>
+      <button class="tab" data-tab="download" role="tab">Download</button>
     </div>
 
-    <div class="container">
-        <!-- Upload Section -->
-        <div class="section">
-            <h2 class="upload-heading">
-                <span>🔼 Upload File</span>
-                <button type="button" id="uploadRulesBtn" class="rules-info-btn" aria-haspopup="dialog" aria-controls="uploadRulesModal" aria-label="View upload rules">ℹ️</button>
-            </h2>
-            <form id="uploadForm">
-                <div class="file-input-wrapper">
-                    <input type="file" id="fileInput" accept="*" required>
-                    <div class="file-input" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                        <span class="upload-icon" id="uploadIconDefault">📁</span>
-                        <span id="fileText">Click or Drag & Drop to select file</span>
-                    </div>
-                </div>
+    <!-- The File Upload Panel -->
+    <div class="panel card" id="panel-upload">
+      <div class="panel-head">
+        <h3>Upload</h3>
+        <span class="muted" style="display: flex; align-items: center;">Max 20&nbsp;MB <button type="button" id="uploadRulesBtn" class="btn btn-ghost btn-sm" style="padding: 2px 8px; margin-left: 8px; font-size: 13px;">ⓘ Rules</button></span>
+      </div>
 
-                <div class="file-preview" id="filePreview" style="display: none;" tabindex="0" role="button" aria-label="Open file preview">
-                    <div class="file-preview-media">
-                        <img id="filePreviewImage" src="" alt="Selected file preview" style="display: none;">
-                        <div id="filePreviewIcon" class="file-preview-icon" style="display: none;">📄</div>
-                    </div>
-                    <div class="file-preview-meta">
-                        <p class="file-preview-name" id="filePreviewName"></p>
-                        <p class="file-preview-size" id="filePreviewSize"></p>
-                    </div>
-                    <button type="button" id="clearFileBtn" class="file-preview-clear">Clear selection</button>
-                </div>
-
-                <input type="text"
-                       id="customFileName"
-                       placeholder="Custom file name (optional)">
-
-                <input type="number"
-                       id="uploadCode"
-                       placeholder="Enter 5-digit code (optional - we'll generate one if empty)"
-                       min="10000"
-                       max="99999">
-
-                                <div style="position: relative; width: 100%; display: flex; align-items: center;">
-    <input 
-        type="password" 
-        id="filePassword" 
-        placeholder="Password protect file (optional)"
-        style="width: 100%; padding-right: 50px; box-sizing: border-box; border-radius: 8px;"
-    />
-    <button 
-        type="button" 
-        id="togglePassword"
-        style="position: absolute; right: 10px ; top: 33%; transform: translateY(-50%); margin: 0; background: none; border: none; cursor: pointer; font-size: 18px; z-index: 10;"
-    >🔒</button>
-</div>
-
-                <select id="expirationTime">
-                    <option value="24h">Expires in 24 hours</option>
-                    <option value="1h">Expires in 1 hour</option>
-                    <option value="6h">Expires in 6 hours</option>
-                    <option value="7d">Expires in 7 days</option>
-                </select>
-
-                <button type="submit" id="uploadBtn">Upload File</button>
-            </form>
-
-            <div class="loading" id="uploadLoading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Uploading...</p>
+      <!-- Form shown before a file is uploaded -->
+      <div id="uploadForm">
+        <label class="dropzone" id="dropzone" tabindex="0" role="button" aria-labelledby="dzTitle dzSub">
+          <input type="file" id="fileInput" hidden />
+          <div class="dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="dropzone-text">
+            <strong id="dzTitle">Click to choose</strong>
+            <span id="dzSub">or drag and drop · any file type</span>
+            <div style="margin-top: 12px;">
+              <div class="btn btn-primary btn-sm">Browse Files</div>
             </div>
+          </div>
+        </label>
 
-            <div id="uploadMessage"></div>
+        <div class="grid-2">
+          <div class="field">
+            <span class="field-icon">#</span>
+            <input id="codeInput" type="text" inputmode="numeric" maxlength="5" placeholder="Custom 5-digit code (optional)" />
+          </div>
+          <div class="field">
+            <span class="field-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input id="passwordInput" type="password" placeholder="Password (optional)" />
+          </div>
+          <div class="field field-full">
+            <span class="field-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <select id="expirySelect">
+              <option value="1h">Expires in 1 hour</option>
+              <option value="6h">Expires in 6 hours</option>
+              <option value="24h" selected>Expires in 24 hours</option>
+              <option value="7d">Expires in 7 days</option>
+            </select>
+          </div>
         </div>
 
-        <div class="preview-modal" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle" aria-hidden="true">
-            <div class="preview-modal-content">
-                <button type="button" class="preview-modal-close" id="previewModalClose" aria-label="Close preview">✕</button>
-                <div class="preview-modal-body">
-                    <h3 id="previewModalTitle">File preview</h3>
-                    <img id="previewModalImage" alt="Full image preview" style="display: none;">
-                    <div class="preview-modal-details" id="previewModalDetails" style="display: none;"></div>
-                </div>
-            </div>
+        <div class="progress" id="progressWrap" hidden>
+          <div class="progress-bar" id="progressBar"></div>
+          <div class="progress-text" id="progressText">Uploading… 0%</div>
         </div>
 
-        <div class="modal" id="uploadRulesModal" role="dialog" aria-modal="true" aria-labelledby="uploadRulesTitle" aria-hidden="true">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="uploadRulesTitle">Upload rules</h3>
-                    <button type="button" class="modal-close" id="uploadRulesClose" aria-label="Close upload rules">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <ul class="modal-rule-list">
-                        <li><strong>Max file size:</strong> <span id="ruleMaxSize"></span></li>
-                        <li><strong>Allowed:</strong> <span id="ruleAllowedTypes"></span></li>
-                        <li><strong>Blocked:</strong> <span id="ruleBlockedTypes"></span></li>
-                        <li><strong>Security:</strong> <span id="ruleSecurity"></span></li>
-                    </ul>
-                </div>
-            </div>
+        <button class="btn btn-primary btn-block btn-lg" id="uploadBtn">Upload file</button>
+      </div>
+
+      <!-- Result screen shown after a successful upload -->
+      <div id="uploadResult" hidden>
+        <div class="success-row">
+          <span class="check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          Upload complete
+        </div>
+        <h3 class="result-title">Your file is ready to share</h3>
+        <p class="muted" id="resultMeta"></p>
+
+        <div class="result-box">
+          <div class="label">Share code</div>
+          <div class="code-row">
+            <div class="code-digits" id="codeDigits"></div>
+            <button class="btn btn-outline btn-sm" id="copyCodeBtn">Copy</button>
+          </div>
         </div>
 
-        <!-- Result Section -->
-        <div class="section" id="resultSection" style="display: none;">
-            <h2>File Uploaded Successfully</h2>
-            <div class="result-card">
-                <div class="result-header">
-                    <span class="result-icon"></span>
-
-                </div>
-                
-                <div class="result-content">
-                    <div class="share-code-section">
-                        <span class="result-icon">🔢</span>
-                        <span class="section-title">Share Code</span>
-                        <div class="share-code-container">
-                            <input type="text" id="shareCodeInput" readonly>
-                            <button type="button" id="copyCodeBtn" class="copy-btn" aria-label="Copy share code">📋</button>
-                        </div>
-                    </div>
-
-                    <div class="share-link-section">
-                        <span class="result-icon">🔗</span>
-                        <span class="section-title">Share Link</span>
-                        <div class="link-container">
-                            <input type="text" id="shareLinkInput" readonly>
-                            <button id="copyLinkBtn" class="copy-btn">Copy</button>
-                        </div>
-                    </div>
-                    
-                    <div class="qr-section">
-                        <span class="result-icon qr-toggle" id="qrToggle"><img src="https://cdn-icons-png.flaticon.com/128/9492/9492600.png" height="30"></span>
-                        <span class="section-title qr-toggle" id="qrToggleText">Click On QR to show</span>
-                        <div id="qrContainer" style="display: none;">
-                            <img id="qrCode" src="" alt="QR Code" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="result-box">
+          <div class="label">Share link</div>
+          <div class="link-row">
+            <div class="link-text" id="linkText"></div>
+            <button class="btn btn-outline btn-sm" id="copyLinkBtn">Copy</button>
+          </div>
         </div>
 
-        <!-- Download Section -->
-        <div class="section">
-            <h2>🔽 Download File</h2>
-            <form id="downloadForm">
-                <input type="number" 
-                       id="downloadCode" 
-                       placeholder="Enter 5-digit code"
-                       min="10000" 
-                       max="99999" 
-                       required>
-                
-                <div class="button-group">
-                    <button type="button" id="infoBtn">Get File Info</button>
-                    <button type="submit" id="downloadBtn">Download File</button>
-                </div>
-            </form>
-            
-            <div class="loading" id="downloadLoading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Processing...</p>
-            </div>
-            
-            <div id="downloadMessage"></div>
-            <div id="fileInfo"></div>
-        </div>
-
-        <!-- Instructions -->
-        <div class="instructions">
-            <h3>📋 How to Use Files on Cloud</h3>
-            <ul>
-                <li><strong>🔐 Authentication:</strong> Create an account or login to upload files. Your files are securely associated with your account.</li>
-                <li><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can optionally provide a custom 5-digit code, set a password, and choose expiration time.</li>
-                <li><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will need the password to download.</li>
-                <li><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period (1 hour to 7 days).</li>
-                <li><strong>QR Codes:</strong> After upload, get a QR code that others can scan to access the download link instantly.</li>
-                <li><strong>Share Code:</strong> After uploading, share the 5-digit code with others to allow them to download your file.</li>
-                <li><strong>Download Files:</strong> Enter the 5-digit code you received and click "Download File" to get the file instantly.</li>
-                <li><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size, and download count before downloading.</li>
-                <li><strong>Analytics:</strong> View download statistics for your uploaded files through your account.</li>
-                <li><strong>Security:</strong> Files are temporarily stored and automatically deleted after expiration for your privacy and security.</li>
-                <li><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</li>
-            </ul>
+        <div class="result-actions">
+          <button class="btn btn-outline btn-block" id="qrToggle">Show QR</button>
+          <button class="btn btn-ghost btn-block" id="resetBtn">Upload another</button>
         </div>
         </div>
 
@@ -319,7 +227,12 @@
                 </div>
                 <p>&copy; 2026 Files on Cloud. Made with ❤️</p>
             </div>
+
+        <div class="qr-box" id="qrBox" hidden>
+          <img id="qrImg" alt="QR code" />
+          <p class="muted">Scan to open the download page</p>
         </div>
+      </div>
     </div>
 
     <script>
@@ -992,46 +905,116 @@
             }
             window.location.href = `${API_BASE}/api/download/${code}`;
         });
+    <!-- The File Download Panel -->
+    <div class="panel card" id="panel-download" hidden>
+      <div class="panel-head">
+        <h3>Download</h3>
+        <span class="muted">Enter 5-digit code</span>
+      </div>
 
-        // IMPROVED: Helper to show messages with better timeout handling
-        function showMessage(element, message, type) {
-            element.innerHTML = `<div class="message ${type}">${message}</div>`;
-            
-            // Clear any existing timeout for this element
-            if (element.timeoutId) {
-                clearTimeout(element.timeoutId);
-            }
-            
-            // Set a new timeout to clear the message
-            element.timeoutId = setTimeout(() => {
-                element.innerHTML = '';
-                element.timeoutId = null;
-            }, 8000); // Increased to 8 seconds for better visibility
-        }
+      <div class="field">
+        <span class="field-icon">#</span>
+        <input id="dlCodeInput" class="mono" type="text" inputmode="numeric" maxlength="5" placeholder="00000" />
+      </div>
 
-        // Page load animation
-        document.addEventListener('DOMContentLoaded', function() {
-            const sections = document.querySelectorAll('.section, .instructions');
-            sections.forEach((section, index) => {
-                setTimeout(() => {
-                    section.style.opacity = '1';
-                    section.style.transform = 'translateY(0)';
-                }, index * 150);
-            });
-        });
+      <div class="field" id="dlPwdField" hidden>
+        <span class="field-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </span>
+        <input id="dlPwdInput" type="password" placeholder="File password" />
+      </div>
 
-        // Alag se window load par toggle bind karna
-document.getElementById('togglePassword').addEventListener('click', function() {
-    const input = document.getElementById('filePassword');
-    if (input.type === 'password') {
-        input.type = 'text';
-        this.textContent = '🔓';
-    } else {
-        input.type = 'password';
-        this.textContent = '🔒';
-    }
-});
-    </script>
-    <script src="theme.js"></script>
+      <div class="info-box" id="dlInfoBox" hidden>
+        <div class="info-name">
+          <span id="dlFileName"></span>
+          <span class="locked" id="dlLocked" hidden>🔒 Protected</span>
+        </div>
+        <div class="info-stats">
+          <div><strong id="dlSize"></strong><span>Size</span></div>
+          <div><strong id="dlCount"></strong><span>Downloads</span></div>
+          <div><strong id="dlExpires"></strong><span>Expires</span></div>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <button class="btn btn-outline" id="dlInfoBtn">Get info</button>
+        <button class="btn btn-primary" id="dlBtn">Download</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Helpful Instructions and Features -->
+  <section id="instructions" class="features" style="padding-top: 32px;">
+    <div class="section-head">
+      <h2>📋 How to Use Files on Cloud</h2>
+      <p class="muted">Everything you need to know about secure file sharing.</p>
+    </div>
+    <div class="how-grid" style="grid-template-columns: 1fr; border-radius: var(--radius-lg); background: var(--bg); border: 1px solid var(--border); padding: 32px;">
+      <ul style="list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 15px; display: flex; flex-direction: column; gap: 16px;">
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>🔐 Authentication:</strong> Uploading works without an account. Sign in if you want your files associated with your account and visible in analytics.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can optionally provide a custom 5-digit code, set a password, and choose expiration time.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will need the password to download.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period (1 hour to 7 days).</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>QR Codes:</strong> After upload, get a QR code that others can scan to access the download link instantly.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Share Code:</strong> After uploading, share the 5-digit code with others to allow them to download your file.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Download Files:</strong> Enter the 5-digit code you received and click "Download File" to get the file instantly.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Get File Info:</strong> Use "Get File Info" button to check file details like name, size, and download count before downloading.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Analytics:</strong> View download statistics for your uploaded files through your account.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Security:</strong> Files are temporarily stored and automatically deleted after expiration for your privacy and security.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>File Types:</strong> All file types are supported - documents, images, videos, archives, and more!</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- The Bottom Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-section contact-dev">
+        <h3>💻 Contact Developer</h3>
+        <div class="social-links">
+          <a href="https://www.linkedin.com/in/priyanshu-kumar-15799a293/" target="_blank" rel="noopener noreferrer">
+            <img src="linkedin.png" alt="linkedin"> LinkedIn
+          </a>
+          <a href="https://github.com/priyansh13-c" target="_blank" rel="noopener noreferrer">
+            <img src="github.png" alt="github"> GitHub
+          </a>
+        </div>
+      </div>
+      <div class="footer-section brand-info">
+        <div class="brand-logo">
+          <span class="brand-mark sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.78A6 6 0 0 0 4 12.5 4.5 4.5 0 0 0 6.5 19"/></svg>
+          </span>
+          <span class="brand-text">Files on Cloud</span>
+        </div>
+        <p class="copyright">&copy; <span id="year"></span> Files on Cloud. Made with ❤️</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Pop-up Toast Notifications -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- The Upload Rules Information Modal -->
+  <div id="uploadRulesModal" class="modal-overlay" hidden style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;">
+    <div class="panel card" style="max-width: 400px; width: 90%; transform: translateY(20px); transition: transform 0.2s ease; margin: 0;">
+      <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+        <h3 style="margin: 0; font-size: 18px;">Upload rules</h3>
+        <button id="uploadRulesClose" class="btn btn-ghost" style="padding: 4px; font-size: 24px; line-height: 1; border: none; background: transparent; cursor: pointer; color: var(--text);">&times;</button>
+      </div>
+      <div style="margin-top: 16px;">
+        <ul style="list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 12px;">
+          <li style="display: flex; gap: 8px;"><span style="color: var(--primary);">▶</span> <span><strong>Max file size:</strong> <span id="ruleMaxSize">20 MB</span></span></li>
+          <li style="display: flex; gap: 8px;"><span style="color: var(--primary);">▶</span> <span><strong>Allowed:</strong> <span id="ruleAllowedTypes">All file types except those blocked below</span></span></li>
+          <li style="display: flex; gap: 8px;"><span style="color: var(--danger, #ff4d4d);">▶</span> <span><strong>Blocked:</strong> <span id="ruleBlockedTypes">.exe, .swf, .jar, .msi</span></span></li>
+          <li style="display: flex; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <span><strong>Security:</strong> <span id="ruleSecurity">Executable installers listed above are blocked by server validation.</span></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
 </body>
 </html>
