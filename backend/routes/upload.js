@@ -273,6 +273,13 @@ router.get('/files/me', auth, async (req, res) => {
   }
 });
 
+// Maximum number of files that may be deleted in a single bulk request.
+// Without a cap an authenticated user could send a very large fileCodes
+// array and force the server to issue a correspondingly large $in query
+// and file-system loop, enabling a denial-of-service via resource
+// exhaustion. 100 files per request is a generous practical limit.
+const MAX_BULK_DELETE = 100;
+
 // Bulk Delete API Endpoint
 router.delete('/files/bulk', auth, async (req, res) => {
   try {
@@ -280,6 +287,12 @@ router.delete('/files/bulk', auth, async (req, res) => {
 
     if (!fileCodes || !Array.isArray(fileCodes) || fileCodes.length === 0) {
       return res.status(400).json({ error: 'No valid files selected for deletion.' });
+    }
+
+    if (fileCodes.length > MAX_BULK_DELETE) {
+      return res.status(400).json({
+        error: `Cannot delete more than ${MAX_BULK_DELETE} files in a single request.`
+      });
     }
 
     const filesToDelete = await FileRecord.find({
