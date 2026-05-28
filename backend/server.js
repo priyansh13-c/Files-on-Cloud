@@ -25,21 +25,24 @@ const app = express();
 const PORT = process.env.PORT || 10002;
 
 // --- SECURE CORS SETUP ---
+// --- SECURE CORS SETUP ---
 const allowedOrigins = [
-  'http://localhost:5500', 
-  'http://127.0.0.1:5500', 
-  'https://your-frontend-vercel-url.vercel.app' // TODO: Replace this with your actual deployed backend URL
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
+  "https://files-on-cloud.onrender.com"
 ];
+
+
 
 app.use(cors({
   origin: function (origin, callback) {
-    //To allow mobile apps or curl requests 
+    // allow Postman / curl / mobile apps (no origin)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true
