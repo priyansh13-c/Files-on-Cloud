@@ -179,12 +179,50 @@
     toast("Uploaded — share your code");
   }
 
+  /* ---------- Updated Clipboard Copy Code with UI Feedback Loops ---------- */
   $("copyCodeBtn").addEventListener("click", () => {
+    const codeBtn = $("copyCodeBtn");
     const code = codeDigits.textContent.trim();
-    navigator.clipboard.writeText(code).then(() => toast("Code copied"));
+    
+    navigator.clipboard.writeText(code).then(() => {
+      toast("Code copied");
+      
+      // Inline button feedback
+      const originalText = codeBtn.textContent;
+      codeBtn.textContent = "Copied! ✓";
+      codeBtn.style.backgroundColor = "#28a745"; // Success green
+      codeBtn.style.borderColor = "#28a745";
+      codeBtn.style.color = "#ffffff";
+      
+      setTimeout(() => {
+        codeBtn.textContent = originalText;
+        codeBtn.style.backgroundColor = "";
+        codeBtn.style.borderColor = "";
+        codeBtn.style.color = "";
+      }, 2000);
+    });
   });
+
   $("copyLinkBtn").addEventListener("click", () => {
-    navigator.clipboard.writeText(linkText.textContent).then(() => toast("Link copied"));
+    const linkBtn = $("copyLinkBtn");
+    
+    navigator.clipboard.writeText(linkText.textContent).then(() => {
+      toast("Link copied");
+      
+      // Inline button feedback
+      const originalText = linkBtn.textContent;
+      linkBtn.textContent = "Link copied! ✓";
+      linkBtn.style.backgroundColor = "#28a745"; // Success green
+      linkBtn.style.borderColor = "#28a745";
+      linkBtn.style.color = "#ffffff";
+      
+      setTimeout(() => {
+        linkBtn.textContent = originalText;
+        linkBtn.style.backgroundColor = "";
+        linkBtn.style.borderColor = "";
+        linkBtn.style.color = "";
+      }, 2000);
+    });
   });
   qrToggle.addEventListener("click", () => {
     qrBox.hidden = !qrBox.hidden;
