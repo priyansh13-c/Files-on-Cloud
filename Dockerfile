@@ -3,12 +3,10 @@ WORKDIR /app
 # copy root package files 
 COPY package*.json ./
 # install dependecies
-RUN npm install 
+RUN npm ci --only=production
 # copy entire project 
 COPY . .
 # create the uploads directory
-RUN mkdir -p uploads
-# Create uploads directory (important for runtime)
 RUN mkdir -p uploads
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
