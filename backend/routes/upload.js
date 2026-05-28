@@ -5,19 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
-const rateLimit = require('express-rate-limit');
 const FileRecord = require('../models/File');
 const auth = require('../middleware/auth');
-
-// Strict per-IP rate limit for the info endpoint to make bulk code enumeration
-// across the 90,000-code space impractical from a single IP address.
-const infoLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20,
-  message: { error: 'Too many info requests from this IP, please slow down.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 const router = express.Router();
 
@@ -198,7 +187,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 // Get file info route
-router.get('/info/:code', infoLimiter, async (req, res) => {
+router.get('/info/:code', async (req, res) => {
   try {
     const { code } = req.params;
     const fileDoc = await FileRecord.findOne({ code }).select('-filename -__v -downloads');
