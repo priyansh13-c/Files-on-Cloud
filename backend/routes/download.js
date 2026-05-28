@@ -2,9 +2,23 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const FileRecord = require('../models/File');
 
 const router = express.Router();
+
+// Dedicated rate limiter for password-verify attempts.
+// Only failed attempts count against the limit (skipSuccessfulRequests: true)
+// so legitimate users who know the password are not penalised.
+// 5 attempts per 15 minutes per IP matches the authLimiter semantics in server.js.
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many password attempts, please try again later.' },
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Escapes characters that have special meaning in HTML to prevent XSS when
 // user-controlled values are interpolated into server-rendered HTML responses.
@@ -152,7 +166,9 @@ router.get('/download/:code', async (req, res) => {
 
 // Password verification route (POST) -- receives the password in the request
 // body (never in the URL) and streams the file if the password is correct.
-router.post('/download/:code/verify', async (req, res) => {
+// verifyLimiter restricts each IP to 5 failed attempts per 15-minute window,
+// preventing brute-force attacks against protected-file passwords.
+router.post('/download/:code/verify', verifyLimiter, async (req, res) => {
   try {
     const { code } = req.params;
     const { password } = req.body;
