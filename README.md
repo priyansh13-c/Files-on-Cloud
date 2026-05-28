@@ -144,40 +144,17 @@ Once running, navigate to [http://localhost:10002](http://localhost:10002) to vi
 
 ## 📸 UI Screenshots
 
-### 🏠 Landing Page & File Upload Interface
-*Featuring clean drag-and-drop upload inputs, custom passwords, custom name configs, and custom expiration options.*
+![alt text](image.png)
 
-<!-- PLACEHOLDER FOR LANDING PAGE SCREENSHOT -->
-![Files-on-Cloud Landing Page](<img width="1902" height="907" alt="image" src="https://github.com/user-attachments/assets/b7b77c90-cf89-415f-86eb-5e13bb0c2caf" />)
+![alt text](image-1.png)
 
-### 📊 File Analytics & Dashboard Overview
-*An intuitive dashboard showing all uploaded files, quick-action deletion/renaming tools, download analytics, and secure management.*
+![alt text](image-2.png)
 
-<!-- PLACEHOLDER FOR DASHBOARD SCREENSHOT -->
-![Developer Dashboard](<img width="1904" height="906" alt="image" src="https://github.com/user-attachments/assets/ab001d07-9664-4de6-b77a-dbba996873b7" />
-)
+![alt text](image-3.png)
 
-### 🔑 Authentication Portal
-*Secure and responsive sign-in and registration pages built with custom JWT verification and strict authentication security bounds.*
+![alt text](image-4.png)
 
-<!-- PLACEHOLDER FOR AUTH SCREENSHOT -->
-![Secure Login Portal](<img width="1913" height="904" alt="image" src="https://github.com/user-attachments/assets/2dff9849-f2b0-40b0-b146-92120b0a5965" />)
-
-### 🔒 Password Protected Download & Share Options
-*A secure, minimal password authentication gateway prompting downloaders before unlocking confidential data.*
-
-<!-- PLACEHOLDER FOR PASSWORD SCREENSHOT -->
-![Password Download Gateway](<img width="1904" height="904" alt="image" src="https://github.com/user-attachments/assets/fd66502a-619b-4cbb-b306-77f39cafbb89" />
-)
-
-### 🔗 QR Code & Dynamic File Link Generator
-*Visual sharing with real-time QR code generation and quick copy links for effortless cross-device file downloads.*
-
-<!-- PLACEHOLDER FOR QR SCREENSHOT -->
-![QR Code Share Interface](<img width="1899" height="905" alt="image" src="https://github.com/user-attachments/assets/f7645527-a031-4750-b824-3ccb838ca07e" />
-)
-
----
+![alt text](image-5.png)
 
 ## 🤝 Contributing
 
