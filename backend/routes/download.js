@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const FileRecord = require('../models/File');
 
 const router = express.Router();
@@ -26,9 +27,20 @@ const getClientIP = (req) => {
          'unknown';
 };
 
+// One-way hash of an IP address for privacy-safe analytics storage.
+// The optional IP_SALT environment variable prevents rainbow-table
+// reconstruction of the original address. Only the first 16 hex
+// characters (64 bits) are stored -- enough to distinguish clients
+// while discarding information that could re-identify individuals.
+const hashIP = (ip) => {
+  const salt = process.env.IP_SALT || '';
+  return crypto.createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);
+};
+
 // Shared helper: record analytics and stream the file to the client.
 const serveFile = async (req, res, fileDoc) => {
   const clientIP = getClientIP(req);
+  const ipHash = hashIP(clientIP);
   const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
 
   await FileRecord.updateOne(
@@ -37,7 +49,7 @@ const serveFile = async (req, res, fileDoc) => {
       $inc: { downloadCount: 1 },
       $push: {
         downloads: {
-          $each: [{ ip: clientIP, userAgent, time: new Date() }],
+          $each: [{ ip: ipHash, userAgent, time: new Date() }],
           $slice: -500
         }
       }

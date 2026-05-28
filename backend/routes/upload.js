@@ -246,7 +246,7 @@ router.get('/analytics/:code', auth, async (req, res) => {
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 10)
       .map(download => ({
-        ip: download.ip,
+        ipHash: download.ip,
         userAgent: download.userAgent,
         time: download.time
       }));
