@@ -148,6 +148,80 @@ button { font: inherit; cursor: pointer; }
 }
 .btn-outline:hover { background: var(--surface-2); }
 
+
+/* Mobile responsive Navbar */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 24px;
+}
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: -280px;
+
+  width: 260px;
+  height: 100vh;
+
+  background: var(--bg-2);
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  padding: 24px;
+
+  transition: left 0.3s ease;
+
+  z-index: 100;
+}
+
+.mobile-menu.open {
+  left: 0;
+}
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,0.5);
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition: 0.3s;
+
+  z-index: 99;
+}
+
+.mobile-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+.mobile-menu a {
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mobile-menu a:hover {
+  background: var(--surface);
+}
+
+@media (max-width: 760px) {
+
+
+  .home-nav .nav-links,
+  .home-nav .nav-cta {
+    display: none !important;
+  }
+
+  .home-nav .hamburger {
+    display: block;
+  }
+}
+
 /* ---------- The Top Hero Section ---------- */
 .hero {
   max-width: 880px; margin: 0 auto;
@@ -1030,4 +1104,66 @@ body.light-theme .batch-btn {
 .batch-btn.delete:hover {
     background: #f44336;
     color: white;
+}
+
+
+.password-container {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.toggle-password:hover {
+  color: var(--primary);
+}
+
+.toggle-password svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+/* File preview styling */
+.file-preview{
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+
+.file-preview img{
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.file-info{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-name{
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.file-size,
+.file-type{
+  color: var(--muted);
+  font-size: 14px;
 }

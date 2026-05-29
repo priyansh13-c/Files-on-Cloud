@@ -24,15 +24,18 @@ if (!process.env.MONGO_URI) {
 const app = express();
 const PORT = process.env.PORT || 10002;
 
+// Construct the dynamic local origin
+const localOrigin = `http://localhost:${PORT}`;
+
+
 // --- SECURE CORS SETUP ---
 // --- SECURE CORS SETUP ---
 const allowedOrigins = [
-
-  "http://localhost:5000",
-  "http://localhost:5173",
+  localOrigin, // dynamic localhost based on PORT
   "http://127.0.0.1:5000",
   "https://files-on-cloud.onrender.com"
-];
+].filter(Boolean);
+
 
 
 

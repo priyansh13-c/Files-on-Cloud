@@ -64,15 +64,11 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// Helper function to generate unique code
-const generateCode = async () => {
-  let code, exists = true;
-  while (exists) {
-    code = Math.floor(10000 + Math.random() * 90000).toString();
-    exists = await FileRecord.findOne({ code });
-  }
-  return code;
-};
+// Generate a random 5-digit code without a prior uniqueness check.
+// Callers are responsible for handling a duplicate-key error from MongoDB
+// and retrying with a new code when necessary.
+const generateCode = () =>
+  Math.floor(10000 + Math.random() * 90000).toString();
 
 // Helper function to parse expiration time
 const parseExpiration = (expiration) => {
@@ -102,19 +98,19 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
-    let { code, password, expiration, customName } = req.body;
-    if (code) {
-      if (!/^\d{5}$/.test(code)) {
+    let { code: requestedCode, password, expiration, customName } = req.body;
+
+    // Validate user-supplied custom code before any DB work.
+    if (requestedCode) {
+      if (!/^\d{5}$/.test(requestedCode)) {
         await fs.promises.unlink(req.file.path);
         return res.status(400).json({ error: 'Code must be exactly 5 digits.' });
       }
-      const existingFile = await FileRecord.findOne({ code });
+      const existingFile = await FileRecord.findOne({ code: requestedCode });
       if (existingFile) {
         await fs.promises.unlink(req.file.path);
         return res.status(409).json({ error: 'This code is already in use.' });
       }
-    } else {
-      code = await generateCode();
     }
 
     // Anonymous uploads are capped at 24 hours regardless of the requested
@@ -145,19 +141,54 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       }
     }
 
-    const newFileRecord = new FileRecord({
-      code,
-      originalName: sanitizedOriginalName,
-      displayName,
-      filename: req.file.filename,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      password: password || undefined, // Only set if provided
-      expiresAt,
-      uploadedBy: req.user ? (req.user._id || req.user.userId) : null
-    });
+    // Save with retry on duplicate-key collision.
+    // When a code is auto-generated rather than user-supplied, two concurrent
+    // requests can independently generate the same code and both reach .save().
+    // MongoDB's unique index on `code` rejects the second insert with error
+    // code 11000. Catching that error and retrying with a fresh code resolves
+    // the race without an extra round-trip for every upload.
+    const MAX_CODE_RETRIES = 5;
+    let savedRecord;
+    let code = requestedCode || generateCode();
 
-    await newFileRecord.save();
+    for (let attempt = 0; attempt < MAX_CODE_RETRIES; attempt++) {
+      const newFileRecord = new FileRecord({
+        code,
+        originalName: sanitizedOriginalName,
+        displayName,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        password: password || undefined,
+        expiresAt,
+        uploadedBy: req.user ? (req.user._id || req.user.userId) : null
+      });
+
+      try {
+        savedRecord = await newFileRecord.save();
+        break;
+      } catch (saveErr) {
+        // 11000 is MongoDB's duplicate-key error code. Only retry for
+        // auto-generated codes; user-supplied codes should not be silently
+        // swapped for a different value.
+        if (saveErr.code === 11000) {
+          if (requestedCode) {
+            // User-supplied code conflicts with an existing entry; report it
+            // as a 409 rather than letting the generic 500 handler fire.
+            return res.status(409).json({
+              error: `The code "${requestedCode}" is already in use. Please choose a different code.`
+            });
+          }
+          code = generateCode();
+          continue;
+        }
+        throw saveErr;
+      }
+    }
+
+    if (!savedRecord) {
+      throw new Error('Failed to assign a unique code after multiple attempts.');
+    }
 
     // Generate QR code
     const downloadUrl = `${req.protocol}://${req.get('host')}/download/${code}`;
@@ -235,7 +266,7 @@ router.get('/analytics/:code', auth, async (req, res) => {
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 10)
       .map(download => ({
-        ip: download.ip,
+        ipHash: download.ip,
         userAgent: download.userAgent,
         time: download.time
       }));
@@ -262,6 +293,13 @@ router.get('/files/me', auth, async (req, res) => {
   }
 });
 
+// Maximum number of files that may be deleted in a single bulk request.
+// Without a cap an authenticated user could send a very large fileCodes
+// array and force the server to issue a correspondingly large $in query
+// and file-system loop, enabling a denial-of-service via resource
+// exhaustion. 100 files per request is a generous practical limit.
+const MAX_BULK_DELETE = 100;
+
 // Bulk Delete API Endpoint
 router.delete('/files/bulk', auth, async (req, res) => {
   try {
@@ -269,6 +307,12 @@ router.delete('/files/bulk', auth, async (req, res) => {
 
     if (!fileCodes || !Array.isArray(fileCodes) || fileCodes.length === 0) {
       return res.status(400).json({ error: 'No valid files selected for deletion.' });
+    }
+
+    if (fileCodes.length > MAX_BULK_DELETE) {
+      return res.status(400).json({
+        error: `Cannot delete more than ${MAX_BULK_DELETE} files in a single request.`
+      });
     }
 
     const filesToDelete = await FileRecord.find({
