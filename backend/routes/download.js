@@ -32,8 +32,17 @@ const getClientIP = (req) => {
 // reconstruction of the original address. Only the first 16 hex
 // characters (64 bits) are stored -- enough to distinguish clients
 // while discarding information that could re-identify individuals.
+// Returns a truncated SHA-256 hash of the IP address combined with a
+// mandatory server-side salt. An empty or missing IP_SALT would reduce
+// the hash to a simple unsalted SHA-256, making rainbow-table attacks
+// against known IPv4 ranges trivial; callers therefore receive null
+// when the salt is absent so they do not persist a weakened value.
 const hashIP = (ip) => {
-  const salt = process.env.IP_SALT || '';
+  const salt = process.env.IP_SALT;
+  if (!salt) {
+    console.error('[hashIP] IP_SALT environment variable is not set. IP hashing skipped to avoid storing unsalted hashes.');
+    return null;
+  }
   return crypto.createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);
 };
 
@@ -43,13 +52,20 @@ const serveFile = async (req, res, fileDoc) => {
   const ipHash = hashIP(clientIP);
   const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
 
+  const analyticsEntry = { userAgent, time: new Date() };
+  // Only persist ip when hashing succeeded (IP_SALT is configured).
+  // Omitting the field avoids storing a plaintext or unsalted address.
+  if (ipHash !== null) {
+    analyticsEntry.ip = ipHash;
+  }
+
   await FileRecord.updateOne(
     { code: fileDoc.code },
     {
       $inc: { downloadCount: 1 },
       $push: {
         downloads: {
-          $each: [{ ip: ipHash, userAgent, time: new Date() }],
+          $each: [analyticsEntry],
           $slice: -500
         }
       }
