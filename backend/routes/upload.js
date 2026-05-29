@@ -182,7 +182,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         // 11000 is MongoDB's duplicate-key error code. Only retry for
         // auto-generated codes; user-supplied codes should not be silently
         // swapped for a different value.
-        if (saveErr.code === 11000 && !requestedCode) {
+        if (saveErr.code === 11000) {
+          if (requestedCode) {
+            // User-supplied code conflicts with an existing entry; report it
+            // as a 409 rather than letting the generic 500 handler fire.
+            return res.status(409).json({
+              error: `The code "${requestedCode}" is already in use. Please choose a different code.`
+            });
+          }
           code = generateCode();
           continue;
         }
