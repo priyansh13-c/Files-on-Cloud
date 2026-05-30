@@ -39,20 +39,23 @@ const allowedOrigins = [
 
 
 
+
 app.use(cors({
   origin: function (origin, callback) {
-    // allow Postman / curl / mobile apps (no origin)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (Postman, mobile apps)
+    if (!origin || origin === "null") {
+      return callback(null, true);
+    }
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+      return callback(null, true);
     }
+
+    console.log("Blocked Origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
-// -------------------------
 
 // Import routes
 const authRoutes = require('./routes/auth');

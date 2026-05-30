@@ -75,6 +75,8 @@
   const qrToggle = $("qrToggle");
   const qrBox = $("qrBox");
   const qrImg = $("qrImg");
+  const shortLinkBox = $("shortLinkBox");
+  const shortLinkText = $("shortLinkText");
 
   let pickedFile = null;
 
@@ -254,6 +256,19 @@
     uploadForm.hidden = true;
     uploadResult.hidden = false;
     toast("Uploaded — share your code");
+
+    // Generate short URL via backend proxy (avoids browser CORS restrictions)
+    shortLinkBox.hidden = true;
+    shortLinkText.textContent = "";
+    fetch(`${API_BASE}/api/shorten?url=${encodeURIComponent(link)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.shortUrl) {
+          shortLinkText.textContent = data.shortUrl;
+          shortLinkBox.hidden = false;
+        }
+      })
+      .catch(() => { /* silently skip if shortener is unavailable */ });
   }
 
   /* ---------- Updated Clipboard Copy Code with UI Feedback Loops ---------- */
@@ -301,6 +316,27 @@
       }, 2000);
     });
   });
+
+  $("copyShortLinkBtn").addEventListener("click", () => {
+    const shortBtn = $("copyShortLinkBtn");
+
+    navigator.clipboard.writeText(shortLinkText.textContent).then(() => {
+      toast("Short link copied");
+
+      const originalText = shortBtn.textContent;
+      shortBtn.textContent = "Copied! ✓";
+      shortBtn.style.backgroundColor = "#28a745";
+      shortBtn.style.borderColor = "#28a745";
+      shortBtn.style.color = "#ffffff";
+
+      setTimeout(() => {
+        shortBtn.textContent = originalText;
+        shortBtn.style.backgroundColor = "";
+        shortBtn.style.borderColor = "";
+        shortBtn.style.color = "";
+      }, 2000);
+    });
+  });
   qrToggle.addEventListener("click", () => {
     qrBox.hidden = !qrBox.hidden;
     qrToggle.textContent = qrBox.hidden ? "Show QR" : "Hide QR";
@@ -319,6 +355,8 @@
     uploadBtn.disabled = false;
     qrBox.hidden = true;
     qrToggle.textContent = "Show QR";
+    shortLinkBox.hidden = true;
+    shortLinkText.textContent = "";
     uploadResult.hidden = true;
     uploadForm.hidden = false;
   });
@@ -334,8 +372,33 @@
   const dlExpires = $("dlExpires");
   const dlLocked = $("dlLocked");
 
-  dlCodeInput.addEventListener("input", () => {
+  let lastCheckedCode = "";
+
+  dlCodeInput.addEventListener("input", async () => {
     dlCodeInput.value = dlCodeInput.value.replace(/\D/g, "").slice(0, 5);
+
+    const code = dlCodeInput.value;
+
+    if (code.length !== 5) {
+      dlPwdField.hidden = true;
+      dlPwdInput.value = "";
+      return;
+    }
+
+    if (code === lastCheckedCode) return;
+    lastCheckedCode = code;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/info/${code}`);
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+
+      dlPwdField.hidden = !result.hasPassword;
+    } catch (error) {
+      console.error("Failed to check file protection:", error);
+    }
   });
 
   $("dlInfoBtn").addEventListener("click", async () => {
