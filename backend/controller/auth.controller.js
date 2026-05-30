@@ -29,9 +29,10 @@ const signup = async (req, res) => {
     const user = new User({ username, email, password });
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT token. tv (token version) is embedded so the auth
+    // middleware can reject tokens issued before a logout event.
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, tv: user.tokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -73,9 +74,9 @@ const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    // Generate JWT token
+    // Generate JWT token including the current token version.
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, tv: user.tokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -114,4 +115,16 @@ const getMyInfo = async (req, res) => {
 };
 
 
-module.exports = {signup, login, getMyInfo};
+// Logout controller — increments tokenVersion so all previously issued
+// tokens for this user are immediately rejected by the auth middleware.
+const logout = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { $inc: { tokenVersion: 1 } });
+    res.json({ message: 'Logged out successfully.' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Server error during logout.' });
+  }
+};
+
+module.exports = {signup, login, getMyInfo, logout};
