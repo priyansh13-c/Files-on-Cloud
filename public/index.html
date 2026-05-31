@@ -316,7 +316,10 @@
       <div class="info-box" id="dlInfoBox" hidden>
         <div class="info-name">
           <span id="dlFileName"></span>
-          <span class="locked" id="dlLocked" hidden>🔒 Protected</span>
+          <span class="locked" id="dlLocked" hidden style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Protected
+          </span>
         </div>
         <div class="info-stats">
           <div><strong id="dlSize"></strong><span>Size</span></div>
@@ -335,12 +338,15 @@
   <!-- Helpful Instructions and Features -->
   <section id="instructions" class="features" style="padding-top: 32px;">
     <div class="section-head">
-      <h2>📋 How to Use Files on Cloud</h2>
+      <h2 style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color: var(--primary);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        How to Use Files on Cloud
+      </h2>
       <p class="muted">Everything you need to know about secure file sharing.</p>
     </div>
     <div class="how-grid" style="grid-template-columns: 1fr; border-radius: var(--radius-lg); background: var(--bg); border: 1px solid var(--border); padding: 32px;">
       <ul style="list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 15px; display: flex; flex-direction: column; gap: 16px;">
-        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>🔐 Authentication:</strong> Uploading works without an account. Sign in if you want your files associated with your account and visible in analytics.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Authentication:</strong> Uploading works without an account. Sign in if you want your files associated with your account and visible in analytics.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can optionally provide a custom 5-digit code, set a password, and choose expiration time.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will need the password to download.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period (1 hour to 7 days).</span></li>
