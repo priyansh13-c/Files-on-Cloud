@@ -130,6 +130,8 @@
       <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
       <button class="btn btn-ghost" id="loginBtn">Login</button>
       <button class="btn btn-primary" id="signupBtn">Sign Up</button>
+      <span id="usernameLabel" class="auth-user-label" style="display: none;">Hi, User</span>
+      <button class="btn btn-outline" id="logoutBtn" style="display: none;">Logout</button>
       <button class="btn btn-outline" id="dashboardBtn" style="display: none;">Dashboard</button>
     </div>
 
@@ -151,7 +153,9 @@
     <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
     <button class="btn btn-ghost" id="mobileLoginBtn">Login</button>
     <button class="btn btn-primary" id="mobileSignupBtn">Sign Up</button>
-    <button class="btn btn-outline" id="mobileDashboardBtn" style="display:none;">
+    <span id="mobileUsernameLabel" class="auth-user-label" style="display: none;">Hi, User</span>
+    <button class="btn btn-outline" id="mobileLogoutBtn" style="display: none;">Logout</button>
+    <button class="btn btn-outline" id="mobileDashboardBtn" style="display: none;">
       Dashboard
     </button>
 
@@ -445,6 +449,21 @@
             </div>
           </li>
         </ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="logoutConfirmModal" class="confirm-modal" hidden role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmMessage">
+    <div class="confirm-modal-backdrop"></div>
+    <div class="confirm-modal-card" role="document">
+      <div class="confirm-modal-header">
+        <h3 id="logoutConfirmTitle">Confirm Logout</h3>
+        <button type="button" id="logoutConfirmClose" class="confirm-modal-close" aria-label="Close logout confirmation">&times;</button>
+      </div>
+      <p id="logoutConfirmMessage" class="confirm-modal-message">Are you sure you want to logout?</p>
+      <div class="confirm-modal-actions">
+        <button type="button" id="confirmLogoutBtn" class="btn btn-primary">Yes, Logout</button>
+        <button type="button" id="cancelLogoutBtn" class="btn btn-outline">Cancel</button>
       </div>
     </div>
   </div>
