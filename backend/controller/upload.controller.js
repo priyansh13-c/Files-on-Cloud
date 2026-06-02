@@ -83,10 +83,11 @@ const uploadFile = async (req, res) => {
     if (customName && customName.trim()) {
       let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
       if (cleanedCustomName) {
-        if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-          cleanedCustomName += originalExt;
-        }
-        displayName = cleanedCustomName;
+        // Strip any extension the caller supplied before appending the original.
+        // This prevents misleading double-extension names such as "report.pdf.exe"
+        // from passing through when the original file is a PDF.
+        const nameWithoutExt = cleanedCustomName.replace(/\.[^/.]+$/, '');
+        displayName = (nameWithoutExt || cleanedCustomName) + (originalExt || '');
       }
     }
 
@@ -351,17 +352,16 @@ const renameFile = async (req, res) => {
 
     const originalExt = path.extname(fileDoc.originalName);
     let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
-    
+
     if (!cleanedCustomName) {
       return res.status(400).json({ error: 'Invalid filename.' });
     }
 
-    // Append the original file extension if missing from the new custom filename
-    if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-      cleanedCustomName += originalExt;
-    }
-
-    fileDoc.displayName = cleanedCustomName;
+    // Strip any extension the caller supplied before appending the original.
+    // This prevents misleading double-extension names such as "report.pdf.exe"
+    // when the original file is a PDF.
+    const nameWithoutExt = cleanedCustomName.replace(/\.[^/.]+$/, '');
+    fileDoc.displayName = (nameWithoutExt || cleanedCustomName) + (originalExt || '');
     await fileDoc.save();
 
     res.json({ success: true, message: 'File renamed successfully.', displayName: cleanedCustomName });
