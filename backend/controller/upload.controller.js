@@ -211,7 +211,11 @@ const getAnalytics = async (req, res) => {
       return res.status(403).json({ error: 'Access denied. You can only view analytics for your own files.' });
     }
 
-    const recentDownloads = fileDoc.downloads
+    // Clone the array before sorting to avoid mutating the live Mongoose document.
+    // Array.sort() is in-place: without the copy, fileDoc.downloads is permanently
+    // reordered in memory. Concurrent requests would observe inconsistent ordering,
+    // and any accidental save() after this point would persist the sorted order.
+    const recentDownloads = [...fileDoc.downloads]
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 10)
       .map(download => ({
