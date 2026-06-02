@@ -55,6 +55,15 @@ const uploadFile = async (req, res) => {
         await fs.promises.unlink(req.file.path);
         return res.status(400).json({ error: 'Code must be exactly 5 digits.' });
       }
+      // generateCode() produces values in [10000, 99999]. Reject codes outside
+      // this range (e.g. "00042") so that user-supplied codes and auto-generated
+      // codes occupy the same namespace, preventing an unreachable leading-zero
+      // code space with no user-facing indication.
+      const codeNum = parseInt(requestedCode, 10);
+      if (codeNum < 10000 || codeNum > 99999) {
+        await fs.promises.unlink(req.file.path);
+        return res.status(400).json({ error: 'Code must be between 10000 and 99999.' });
+      }
       const existingFile = await FileRecord.findOne({ code: requestedCode });
       if (existingFile) {
         await fs.promises.unlink(req.file.path);
