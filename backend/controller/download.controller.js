@@ -1,9 +1,7 @@
-const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const FileRecord = require('../models/File');
-
-const router = express.Router();
 
 // Escapes characters that have special meaning in HTML to prevent XSS when
 // user-controlled values are interpolated into server-rendered HTML responses.
@@ -26,19 +24,36 @@ const getClientIP = (req) => {
          'unknown';
 };
 
+// One-way hash of an IP address for privacy-safe analytics storage.
+const hashIP = (ip) => {
+  const salt = process.env.IP_SALT;
+  if (!salt) {
+    console.error('[hashIP] IP_SALT environment variable is not set. IP hashing skipped to avoid storing unsalted hashes.');
+    return null;
+  }
+  return crypto.createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);
+};
+
 // SHARED HELPER: Optimized via Streams to handle chunked buffering and backpressure
 const serveFile = async (req, res, fileDoc) => {
   const clientIP = getClientIP(req);
+  const ipHash = hashIP(clientIP);
   const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
 
-  // 1. Update Download Analytics asynchronously
+  // 1. Structure the privacy-safe analytics entry
+  const analyticsEntry = { userAgent, time: new Date() };
+  if (ipHash !== null) {
+    analyticsEntry.ip = ipHash;
+  }
+
+  // Update Download Analytics asynchronously
   await FileRecord.updateOne(
     { code: fileDoc.code },
     {
       $inc: { downloadCount: 1 },
       $push: {
         downloads: {
-          $each: [{ ip: clientIP, userAgent, time: new Date() }],
+          $each: [analyticsEntry],
           $slice: -500
         }
       }
@@ -53,26 +68,26 @@ const serveFile = async (req, res, fileDoc) => {
 
   const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
 
-  // 3. Set standard stream-friendly headers for download tracking
+  // 3. Set dynamic chunk-friendly headers for download mapping
   res.setHeader('Content-Type', fileDoc.mimeType || 'application/octet-stream');
-  res.setHeader('Content-Length', fileDoc.size); // Crucial for showing browser download percentage
+  res.setHeader('Content-Length', fileDoc.size); // Crucial for browser progress bars
   res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeDownloadName)}"`);
 
-  // 4. Create read stream instead of memory-blocking blocks
+  // 4. Create readable stream to keep V8 heap memory minimal (<2MB footprint)
   const fileStream = fs.createReadStream(filePath);
 
-  // Pipe the file chunks straight into the HTTP response object (Handles backpressure natively)
+  // Pipe the file chunks straight into the HTTP response object (Handles backpressure)
   fileStream.pipe(res);
 
-  // 5. Stream Pipeline Resiliency: If user cancels/aborts mid-way, close file descriptors immediately
+  // 5. Stream Pipeline Resiliency: Clear file handlers instantly on manual client cancellation
   req.on('close', () => {
     if (!res.writableEnded) {
-      fileStream.destroy(); // Hard destroy to prevent resource or file-locking leaks
+      fileStream.destroy(); // Prevent memory/descriptor leaks
       console.log(`[Stream Aborted]: Active download pipeline killed by client for code: ${fileDoc.code}`);
     }
   });
 
-  // Handle stream read internal infrastructure failures safely
+  // Track and log stream failures safely
   fileStream.on('error', (err) => {
     console.error('[Stream Ingestion Error]:', err);
     if (!res.headersSent) {
@@ -81,13 +96,11 @@ const serveFile = async (req, res, fileDoc) => {
   });
 };
 
-// Download file route (GET) -- shows password form for protected files,
-// streams file directly for unprotected ones.
-router.get('/download/:code', async (req, res) => {
+// Download file route handler (GET)
+const downloadFile = async (req, res) => {
   try {
     const { code } = req.params;
 
-    // Validate code format before using it in any DB query or HTML response.
     if (!/^\d{5}$/.test(code)) {
       return res.status(400).send('<h1>Invalid request: code must be exactly 5 digits.</h1>');
     }
@@ -97,7 +110,6 @@ router.get('/download/:code', async (req, res) => {
       return res.status(404).send('<h1>File not found</h1>');
     }
 
-    // Check if file has expired
     if (new Date() > fileDoc.expiresAt) {
       return res.status(410).send('<h1>File has expired and been deleted</h1>');
     }
@@ -109,7 +121,6 @@ router.get('/download/:code', async (req, res) => {
       return res.status(404).send('<h1>File missing from server</h1>');
     }
 
-    // Check password if file is protected
     if (fileDoc.password) {
       return res.send(`
         <!DOCTYPE html>
@@ -128,6 +139,9 @@ router.get('/download/:code', async (req, res) => {
           <div class="container">
             <h2>🔒 Password Protected File</h2>
             <p>This file requires a password to download.</p>
+            <p style="color: #666; font-size: 14px;">
+              Even if you already entered the password on the previous page, please enter it again to continue the download.
+            </p>
             <form method="POST" action="/download/${escapeHtml(code)}/verify">
               <input type="password" name="password" placeholder="Enter password" required>
               <br>
@@ -144,11 +158,10 @@ router.get('/download/:code', async (req, res) => {
     console.error('Download Error:', error);
     res.status(500).send('<h1>Server Error</h1>');
   }
-});
+};
 
-// Password verification route (POST) -- receives the password in the request
-// body (never in the URL) and streams the file if the password is correct.
-router.post('/download/:code/verify', async (req, res) => {
+// Password verification route handler (POST)
+const verifyPassword = async (req, res) => {
   try {
     const { code } = req.params;
     const { password } = req.body;
@@ -208,6 +221,24 @@ router.post('/download/:code/verify', async (req, res) => {
     console.error('Verify Download Error:', error);
     res.status(500).send('<h1>Server Error</h1>');
   }
-});
+};
 
-module.exports = router;
+// Short URL proxy handler
+const shortenURL = async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'url query param required' });
+
+  try {
+    const response = await fetch(
+      `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`
+    );
+    if (!response.ok) throw new Error(`TinyURL returned ${response.status}`);
+    const shortUrl = await response.text();
+    res.json({ shortUrl: shortUrl.trim() });
+  } catch (err) {
+    console.error('URL shortener error:', err.message);
+    res.status(502).json({ error: 'URL shortener unavailable' });
+  }
+};
+
+module.exports = { downloadFile, verifyPassword, shortenURL };

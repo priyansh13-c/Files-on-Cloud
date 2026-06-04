@@ -1,78 +1,24 @@
-const express = require('express');
-const multer = require('multer');
+
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const FileRecord = require('../models/File');
-const auth = require('../middleware/auth');
+const validateFileSignature = require("../utils/validateSignature");
 
-const router = express.Router();
+// Maximum number of files that may be deleted in a single bulk request.
+// Without a cap an authenticated user could send a very large fileCodes
+// array and force the server to issue a correspondingly large $in query
+// and file-system loop, enabling a denial-of-service via resource
+// exhaustion. 100 files per request is a generous practical limit.
+const MAX_BULK_DELETE = 100;
 
-// File storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', '..', 'uploads');
-    fs.promises.access(uploadDir)
-      .then(() => cb(null, uploadDir))
-      .catch(async () => {
-        try {
-          await fs.promises.mkdir(uploadDir, { recursive: true });
-          cb(null, uploadDir);
-        } catch (error) {
-          cb(error);
-        }
-      });
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = crypto.randomBytes(16).toString('hex') + path.extname(file.originalname);
-    cb(null, uniqueName);
-  }
-});
-
-// Allowlist of file extensions that may be uploaded.
-// Client-supplied MIME types are not trusted for security decisions because
-// the Content-Type header is fully attacker-controlled. Extension-based
-// allowlisting is the primary gate; a magic-byte check can be layered on
-// top as defence-in-depth if needed in the future.
-const ALLOWED_EXTENSIONS = new Set([
-  // Documents
-  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-  '.txt', '.csv', '.md', '.rtf', '.odt', '.ods', '.odp',
-  // Images
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff',
-  // Audio / Video
-  '.mp4', '.mp3', '.wav', '.avi', '.mov', '.mkv', '.flac', '.ogg', '.webm',
-  // Archives
-  '.zip', '.tar', '.gz', '.7z', '.rar',
-  // Data / Config (non-executable)
-  '.json', '.xml', '.yaml', '.yml', '.toml', '.ini',
-]);
-
-const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return cb(new Error(`File type "${ext || '(none)'}" is not permitted.`), false);
-  }
-  cb(null, true);
-};
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
-  fileFilter: fileFilter
-});
-
-// Helper function to generate unique code
-const generateCode = async () => {
-  let code, exists = true;
-  while (exists) {
-    code = Math.floor(10000 + Math.random() * 90000).toString();
-    exists = await FileRecord.findOne({ code });
-  }
-  return code;
-};
+// Generate a random 5-digit code without a prior uniqueness check.
+// Callers are responsible for handling a duplicate-key error from MongoDB
+// and retrying with a new code when necessary.
+const generateCode = () =>
+  Math.floor(10000 + Math.random() * 90000).toString();
 
 // Helper function to parse expiration time
 const parseExpiration = (expiration) => {
@@ -87,7 +33,7 @@ const parseExpiration = (expiration) => {
 };
 
 // Upload file route
-router.post('/upload', upload.single('file'), async (req, res) => {
+const uploadFile = async (req, res) => {
   try {
     const authHeader = req.header('Authorization');
     if (authHeader) {
@@ -102,19 +48,28 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
-    let { code, password, expiration, customName } = req.body;
-    if (code) {
-      if (!/^\d{5}$/.test(code)) {
+    let { code: requestedCode, password, expiration, customName } = req.body;
+
+    // Validate user-supplied custom code before any DB work.
+    if (requestedCode) {
+      if (!/^\d{5}$/.test(requestedCode)) {
         await fs.promises.unlink(req.file.path);
         return res.status(400).json({ error: 'Code must be exactly 5 digits.' });
       }
-      const existingFile = await FileRecord.findOne({ code });
+      // generateCode() produces values in [10000, 99999]. Reject codes outside
+      // this range (e.g. "00042") so that user-supplied codes and auto-generated
+      // codes occupy the same namespace, preventing an unreachable leading-zero
+      // code space with no user-facing indication.
+      const codeNum = parseInt(requestedCode, 10);
+      if (codeNum < 10000 || codeNum > 99999) {
+        await fs.promises.unlink(req.file.path);
+        return res.status(400).json({ error: 'Code must be between 10000 and 99999.' });
+      }
+      const existingFile = await FileRecord.findOne({ code: requestedCode });
       if (existingFile) {
         await fs.promises.unlink(req.file.path);
         return res.status(409).json({ error: 'This code is already in use.' });
       }
-    } else {
-      code = await generateCode();
     }
 
     // Anonymous uploads are capped at 24 hours regardless of the requested
@@ -138,26 +93,82 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (customName && customName.trim()) {
       let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
       if (cleanedCustomName) {
-        if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-          cleanedCustomName += originalExt;
-        }
-        displayName = cleanedCustomName;
+        // Strip any extension the caller supplied before appending the original.
+        // This prevents misleading double-extension names such as "report.pdf.exe"
+        // from passing through when the original file is a PDF.
+        const nameWithoutExt = cleanedCustomName.replace(/\.[^/.]+$/, '');
+        displayName = (nameWithoutExt || cleanedCustomName) + (originalExt || '');
       }
     }
 
-    const newFileRecord = new FileRecord({
-      code,
-      originalName: sanitizedOriginalName,
-      displayName,
-      filename: req.file.filename,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      password: password || undefined, // Only set if provided
-      expiresAt,
-      uploadedBy: req.user ? (req.user._id || req.user.userId) : null
-    });
+    if (req.file) {
+      const validation = await validateFileSignature(
+        req.file.path,
+        req.file.originalname
+      );
 
-    await newFileRecord.save();
+      if (!validation.valid) {
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch (err) {
+          console.error("Failed to remove invalid upload:", err);
+        }
+
+
+        return res.status(400).json({
+          error: validation.reason
+        });
+      }
+    }
+
+    // Save with retry on duplicate-key collision.
+    // When a code is auto-generated rather than user-supplied, two concurrent
+    // requests can independently generate the same code and both reach .save().
+    // MongoDB's unique index on `code` rejects the second insert with error
+    // code 11000. Catching that error and retrying with a fresh code resolves
+    // the race without an extra round-trip for every upload.
+    const MAX_CODE_RETRIES = 5;
+    let savedRecord;
+    let code = requestedCode || generateCode();
+
+    for (let attempt = 0; attempt < MAX_CODE_RETRIES; attempt++) {
+      const newFileRecord = new FileRecord({
+        code,
+        originalName: sanitizedOriginalName,
+        displayName,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        password: password || undefined,
+        expiresAt,
+        uploadedBy: req.user ? (req.user._id || req.user.userId) : null
+      });
+
+      try {
+        savedRecord = await newFileRecord.save();
+        break;
+      } catch (saveErr) {
+        // 11000 is MongoDB's duplicate-key error code. Only retry for
+        // auto-generated codes; user-supplied codes should not be silently
+        // swapped for a different value.
+        if (saveErr.code === 11000) {
+          if (requestedCode) {
+            // User-supplied code conflicts with an existing entry; report it
+            // as a 409 rather than letting the generic 500 handler fire.
+            return res.status(409).json({
+              error: `The code "${requestedCode}" is already in use. Please choose a different code.`
+            });
+          }
+          code = generateCode();
+          continue;
+        }
+        throw saveErr;
+      }
+    }
+
+    if (!savedRecord) {
+      throw new Error('Failed to assign a unique code after multiple attempts.');
+    }
 
     // Generate QR code
     const downloadUrl = `${req.protocol}://${req.get('host')}/download/${code}`;
@@ -184,10 +195,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
     res.status(500).json({ error: 'Server error during file upload.' });
   }
-});
+};
 
 // Get file info route
-router.get('/info/:code', async (req, res) => {
+const getFileInfo = async (req, res) => {
   try {
     const { code } = req.params;
     const fileDoc = await FileRecord.findOne({ code }).select('-filename -__v -downloads');
@@ -210,10 +221,10 @@ router.get('/info/:code', async (req, res) => {
     console.error('Info Error:', error);
     res.status(500).json({ error: 'Failed to retrieve file info.' });
   }
-});
+};
 
 // Get analytics route
-router.get('/analytics/:code', auth, async (req, res) => {
+const getAnalytics = async (req, res) => {
   try {
     const { code } = req.params;
     const fileDoc = await FileRecord.findOne({ code });
@@ -231,11 +242,15 @@ router.get('/analytics/:code', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied. You can only view analytics for your own files.' });
     }
 
-    const recentDownloads = fileDoc.downloads
+    // Clone the array before sorting to avoid mutating the live Mongoose document.
+    // Array.sort() is in-place: without the copy, fileDoc.downloads is permanently
+    // reordered in memory. Concurrent requests would observe inconsistent ordering,
+    // and any accidental save() after this point would persist the sorted order.
+    const recentDownloads = [...fileDoc.downloads]
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 10)
       .map(download => ({
-        ip: download.ip,
+        ipHash: download.ip,
         userAgent: download.userAgent,
         time: download.time
       }));
@@ -248,9 +263,10 @@ router.get('/analytics/:code', auth, async (req, res) => {
     console.error('Analytics Error:', error);
     res.status(500).json({ error: 'Failed to retrieve analytics.' });
   }
-});
+};
+
 // Get all files uploaded by current user
-router.get('/files/me', auth, async (req, res) => {
+const getMyFiles =  async (req, res) => {
   try {
     const files = await FileRecord.find({ uploadedBy: req.user._id || req.user.userId })
       .select('-__v -password') // exclude password hash and version
@@ -260,15 +276,22 @@ router.get('/files/me', auth, async (req, res) => {
     console.error('Get user files error:', error);
     res.status(500).json({ error: 'Failed to retrieve files.' });
   }
-});
+};
+
 
 // Bulk Delete API Endpoint
-router.delete('/files/bulk', auth, async (req, res) => {
+const bulkDeleteFiles = async (req, res) => {
   try {
     const { fileCodes } = req.body;
 
     if (!fileCodes || !Array.isArray(fileCodes) || fileCodes.length === 0) {
       return res.status(400).json({ error: 'No valid files selected for deletion.' });
+    }
+
+    if (fileCodes.length > MAX_BULK_DELETE) {
+      return res.status(400).json({
+        error: `Cannot delete more than ${MAX_BULK_DELETE} files in a single request.`
+      });
     }
 
     const filesToDelete = await FileRecord.find({
@@ -306,10 +329,10 @@ router.delete('/files/bulk', auth, async (req, res) => {
     console.error('Bulk delete error:', error);
     res.status(500).json({ error: 'Internal server error during bulk deletion.' });
   }
-});
+};
 
 // Delete user file manually
-router.delete('/files/:code', auth, async (req, res) => {
+const deleteFile =  async (req, res) => {
   try {
     const { code } = req.params;
     const fileDoc = await FileRecord.findOne({ code });
@@ -339,10 +362,10 @@ router.delete('/files/:code', auth, async (req, res) => {
     console.error('Delete file error:', error);
     res.status(500).json({ error: 'Failed to delete file.' });
   }
-});
+};
 
 // Rename user file manually
-router.put('/files/:code/rename', auth, async (req, res) => {
+const renameFile = async (req, res) => {
   try {
     const { code } = req.params;
     const { customName } = req.body;
@@ -363,17 +386,16 @@ router.put('/files/:code/rename', auth, async (req, res) => {
 
     const originalExt = path.extname(fileDoc.originalName);
     let cleanedCustomName = path.basename(customName).replace(/[\x00-\x1f\x7f]/g, '').trim();
-    
+
     if (!cleanedCustomName) {
       return res.status(400).json({ error: 'Invalid filename.' });
     }
 
-    // Append the original file extension if missing from the new custom filename
-    if (originalExt && !cleanedCustomName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-      cleanedCustomName += originalExt;
-    }
-
-    fileDoc.displayName = cleanedCustomName;
+    // Strip any extension the caller supplied before appending the original.
+    // This prevents misleading double-extension names such as "report.pdf.exe"
+    // when the original file is a PDF.
+    const nameWithoutExt = cleanedCustomName.replace(/\.[^/.]+$/, '');
+    fileDoc.displayName = (nameWithoutExt || cleanedCustomName) + (originalExt || '');
     await fileDoc.save();
 
     res.json({ success: true, message: 'File renamed successfully.', displayName: cleanedCustomName });
@@ -381,6 +403,6 @@ router.put('/files/:code/rename', auth, async (req, res) => {
     console.error('Rename file error:', error);
     res.status(500).json({ error: 'Failed to rename file.' });
   }
-});
+};
 
-module.exports = router;
+module.exports = {uploadFile, getFileInfo, getMyFiles, getAnalytics, bulkDeleteFiles, deleteFile ,renameFile};

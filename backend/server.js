@@ -24,31 +24,43 @@ if (!process.env.MONGO_URI) {
 const app = express();
 const PORT = process.env.PORT || 10002;
 
+// Construct the dynamic local origin
+const localOrigin = `http://localhost:${PORT}`;
+
+
+// --- SECURE CORS SETUP ---
 // --- SECURE CORS SETUP ---
 const allowedOrigins = [
-  "http://localhost:5173",
+  localOrigin, // dynamic localhost based on PORT
+  "http://127.0.0.1:5000",
   "https://files-on-cloud.onrender.com"
-];
+].filter(Boolean);
+
+
+
+
 
 app.use(cors({
   origin: function (origin, callback) {
-    //To allow mobile apps or curl requests 
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (Postman, mobile apps)
+    if (!origin || origin === "null") {
+      return callback(null, true);
     }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.log("Blocked Origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
-// -------------------------
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const uploadRoutes = require('./routes/upload');
-const downloadRoutes = require('./routes/download');
+const authRoutes = require('./routes/auth.route.js');
+const uploadRoutes = require('./routes/upload.route.js');
+const downloadRoutes = require('./routes/download.route.js');
 
 // Import models
 const FileRecord = require('./models/File');

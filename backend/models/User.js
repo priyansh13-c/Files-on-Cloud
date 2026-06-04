@@ -26,6 +26,26 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  // Monotonically increasing version counter. Included in every JWT payload
+  // as `tv`. The auth middleware rejects any token whose tv does not match
+  // the current value, immediately invalidating all previously issued tokens
+  // when the user logs out (or when a password change requires revocation).
+  tokenVersion: {
+    type: Number,
+    default: 0
+  },
+
+
+  //reset password related fields
+    resetPasswordToken: {
+    type: String,
+    default: null
+  },
+
+  resetPasswordExpire: {
+    type: Date,
+    default: null
   }
 });
 

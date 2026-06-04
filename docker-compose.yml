@@ -1,0 +1,35 @@
+
+
+services:
+  app:
+    build: .
+    container_name: files-on-cloud-app
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:6
+    container_name: files-on-cloud-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
+  uploads_data:

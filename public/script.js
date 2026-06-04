@@ -75,6 +75,8 @@
   const qrToggle = $("qrToggle");
   const qrBox = $("qrBox");
   const qrImg = $("qrImg");
+  const shortLinkBox = $("shortLinkBox");
+  const shortLinkText = $("shortLinkText");
 
   let pickedFile = null;
 
@@ -87,6 +89,83 @@
     pickedFile = file;
     dzTitle.textContent = file.name;
     dzSub.textContent = formatSize(file.size);
+
+    const filePreview = $("filePreview");
+    const previewContent = $("previewContent");
+
+    if (!filePreview || !previewContent) return;
+
+    if (file.type.startsWith("image/")) {
+      //image preview
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        previewContent.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <div class="file-info">
+            <div class="file-name">${file.name}</div>
+            <div class="file-size">${formatSize(file.size)}</div>
+          </div>
+        `;
+      };
+
+      reader.readAsDataURL(file);
+    }else if(file.type === "application/pdf"){
+      //pdf preview
+      const url = URL.createObjectURL(file);
+
+      previewContent.innerHTML = `
+        <iframe
+          src="${url}"
+          width="100%"
+          height="400"
+          style="border:none;border-radius:8px;">
+        </iframe>
+      `;
+    } else if (
+      file.type.startsWith("text/") ||
+      file.name.endsWith(".json") ||
+      file.name.endsWith(".md") ||
+      file.name.endsWith(".js") ||
+      file.name.endsWith(".css") ||
+      file.name.endsWith(".html")
+    ) {
+      // text preview
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const lines = e.target.result
+          .split('\n')
+          .slice(0, 10)
+          .join('\n');
+
+        previewContent.innerHTML = `
+          <div class="file-info">
+            <div class="file-name">📄 ${file.name}</div>
+            <div class="file-size">${formatSize(file.size)}</div>
+            <pre class="text-preview" style="
+              white-space: pre-wrap;
+              word-break: break-word;
+              overflow-wrap: break-word;
+            ">
+              ${lines}
+            </pre>
+            <p class="muted">Showing first 10 lines...</p>
+          </div>
+        `;
+      };
+
+      reader.readAsText(file);
+    }else {
+      previewContent.innerHTML = `
+        <div class="file-info">
+          <div class="file-name">📄 ${file.name}</div>
+          <div class="file-size">${formatSize(file.size)}</div>
+        </div>
+      `;
+    }
+
+    filePreview.hidden = false;
   }
 
   fileInput.addEventListener("change", (e) => setFile(e.target.files[0]));
@@ -177,14 +256,86 @@
     uploadForm.hidden = true;
     uploadResult.hidden = false;
     toast("Uploaded — share your code");
+
+    // Generate short URL via backend proxy (avoids browser CORS restrictions)
+    shortLinkBox.hidden = true;
+    shortLinkText.textContent = "";
+    fetch(`${API_BASE}/api/shorten?url=${encodeURIComponent(link)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.shortUrl) {
+          shortLinkText.textContent = data.shortUrl;
+          shortLinkBox.hidden = false;
+        }
+      })
+      .catch(() => { /* silently skip if shortener is unavailable */ });
   }
 
+  /* ---------- Updated Clipboard Copy Code with UI Feedback Loops ---------- */
   $("copyCodeBtn").addEventListener("click", () => {
+    const codeBtn = $("copyCodeBtn");
     const code = codeDigits.textContent.trim();
-    navigator.clipboard.writeText(code).then(() => toast("Code copied"));
+    
+    navigator.clipboard.writeText(code).then(() => {
+      toast("Code copied");
+      
+      // Inline button feedback
+      const originalText = codeBtn.textContent;
+      codeBtn.textContent = "Copied! ✓";
+      codeBtn.style.backgroundColor = "#28a745"; // Success green
+      codeBtn.style.borderColor = "#28a745";
+      codeBtn.style.color = "#ffffff";
+      
+      setTimeout(() => {
+        codeBtn.textContent = originalText;
+        codeBtn.style.backgroundColor = "";
+        codeBtn.style.borderColor = "";
+        codeBtn.style.color = "";
+      }, 2000);
+    });
   });
+
   $("copyLinkBtn").addEventListener("click", () => {
-    navigator.clipboard.writeText(linkText.textContent).then(() => toast("Link copied"));
+    const linkBtn = $("copyLinkBtn");
+    
+    navigator.clipboard.writeText(linkText.textContent).then(() => {
+      toast("Link copied");
+      
+      // Inline button feedback
+      const originalText = linkBtn.textContent;
+      linkBtn.textContent = "Link copied! ✓";
+      linkBtn.style.backgroundColor = "#28a745"; // Success green
+      linkBtn.style.borderColor = "#28a745";
+      linkBtn.style.color = "#ffffff";
+      
+      setTimeout(() => {
+        linkBtn.textContent = originalText;
+        linkBtn.style.backgroundColor = "";
+        linkBtn.style.borderColor = "";
+        linkBtn.style.color = "";
+      }, 2000);
+    });
+  });
+
+  $("copyShortLinkBtn").addEventListener("click", () => {
+    const shortBtn = $("copyShortLinkBtn");
+
+    navigator.clipboard.writeText(shortLinkText.textContent).then(() => {
+      toast("Short link copied");
+
+      const originalText = shortBtn.textContent;
+      shortBtn.textContent = "Copied! ✓";
+      shortBtn.style.backgroundColor = "#28a745";
+      shortBtn.style.borderColor = "#28a745";
+      shortBtn.style.color = "#ffffff";
+
+      setTimeout(() => {
+        shortBtn.textContent = originalText;
+        shortBtn.style.backgroundColor = "";
+        shortBtn.style.borderColor = "";
+        shortBtn.style.color = "";
+      }, 2000);
+    });
   });
   qrToggle.addEventListener("click", () => {
     qrBox.hidden = !qrBox.hidden;
@@ -204,6 +355,8 @@
     uploadBtn.disabled = false;
     qrBox.hidden = true;
     qrToggle.textContent = "Show QR";
+    shortLinkBox.hidden = true;
+    shortLinkText.textContent = "";
     uploadResult.hidden = true;
     uploadForm.hidden = false;
   });
@@ -219,8 +372,33 @@
   const dlExpires = $("dlExpires");
   const dlLocked = $("dlLocked");
 
-  dlCodeInput.addEventListener("input", () => {
+  let lastCheckedCode = "";
+
+  dlCodeInput.addEventListener("input", async () => {
     dlCodeInput.value = dlCodeInput.value.replace(/\D/g, "").slice(0, 5);
+
+    const code = dlCodeInput.value;
+
+    if (code.length !== 5) {
+      dlPwdField.hidden = true;
+      dlPwdInput.value = "";
+      return;
+    }
+
+    if (code === lastCheckedCode) return;
+    lastCheckedCode = code;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/info/${code}`);
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+
+      dlPwdField.hidden = !result.hasPassword;
+    } catch (error) {
+      console.error("Failed to check file protection:", error);
+    }
   });
 
   $("dlInfoBtn").addEventListener("click", async () => {
@@ -269,7 +447,15 @@
       const loginBtn = $("loginBtn");
       const signupBtn = $("signupBtn");
       const dashboardBtn = $("dashboardBtn");
+
+        
+      const mobileLoginBtn = $("mobileLoginBtn");
+      const mobileSignupBtn = $("mobileSignupBtn");
+      const mobileDashboardBtn = $("mobileDashboardBtn");
+
       if (!loginBtn) return;
+      if(!mobileLoginBtn) return;
+
       if (currentUser) {
           loginBtn.textContent = `Hi, ${currentUser.username} (Logout)`;
           loginBtn.onclick = () => {
@@ -284,6 +470,30 @@
               dashboardBtn.style.display = 'inline-block';
               dashboardBtn.onclick = () => window.location.href = 'dashboard.html';
           }
+
+        // Mobile
+        if (mobileLoginBtn) {
+            mobileLoginBtn.textContent = "Logout";
+
+            mobileLoginBtn.onclick = () => {
+                localStorage.removeItem("authToken");
+                authToken = null;
+                currentUser = null;
+                updateAuthUI();
+                toast("Logged out successfully");
+            };
+        }
+
+        if (mobileSignupBtn) {
+            mobileSignupBtn.style.display = "none";
+        }
+
+        if (mobileDashboardBtn) {
+            mobileDashboardBtn.style.display = "inline-block";
+            mobileDashboardBtn.onclick = () => {
+                window.location.href = "dashboard.html";
+            };
+        }
       } else {
           loginBtn.textContent = 'Login';
           loginBtn.onclick = () => goToAuthPage('login');
@@ -292,6 +502,21 @@
               signupBtn.onclick = () => goToAuthPage('signup');
           }
           if (dashboardBtn) dashboardBtn.style.display = 'none';
+
+          // Mobile
+          if (mobileLoginBtn) {
+              mobileLoginBtn.textContent = "Login";
+              mobileLoginBtn.onclick = () => goToAuthPage("login");
+          }
+
+          if (mobileSignupBtn) {
+              mobileSignupBtn.style.display = "inline-block";
+              mobileSignupBtn.onclick = () => goToAuthPage("signup");
+          }
+
+          if (mobileDashboardBtn) {
+              mobileDashboardBtn.style.display = "none";
+          }
       }
   }
 
@@ -350,4 +575,52 @@
           if (e.target === uploadRulesModal) closeRules();
       });
   }
+
+
+  const togglePassword = $('togglePassword');
+  const eyeIcon = $('eyeIcon');
+
+  // Toggle Logic inside the scope
+  if (togglePassword) {
+    togglePassword.addEventListener('click', function () {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      
+      if (type === 'text') {
+        eyeIcon.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        `;
+      } else {
+        eyeIcon.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        `;
+      }
+    });
+  }
+
+  const hamburgerBtn = document.getElementById("hamburgerBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+  const mobileOverlay = document.getElementById("mobileOverlay");
+  const mobileLoginBtn = $("mobileLoginBtn");
+const mobileSignupBtn = $("mobileSignupBtn");
+const mobileDashboardBtn = $("mobileDashboardBtn");
+
+  hamburgerBtn.addEventListener("click", () => {
+    mobileMenu.classList.toggle("open");
+    mobileOverlay.classList.toggle("show");
+  });
+
+  mobileOverlay.addEventListener("click", () => {
+    mobileMenu.classList.remove("open");
+    mobileOverlay.classList.remove("show");
+  });
+
+  document.querySelectorAll(".mobile-menu a").forEach(link => {
+    link.addEventListener("click", () => {
+      mobileMenu.classList.remove("open");
+      mobileOverlay.classList.remove("show");
+    });
+  });
 })();

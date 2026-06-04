@@ -9,9 +9,114 @@
   <link rel="preconnect" href="https://api.qrserver.com" />
   <script src="theme.js"></script>
 </head>
+<style>
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .password-wrapper input {
+    padding-right: 40px; /* Make room for the button */
+    width: 100%;
+  }
+
+  .toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+
+  .toggle-btn:hover {
+    color: var(--primary);
+  }
+
+  /* Upload Rules Modal Modernized CSS */
+  .rules-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rules-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .rules-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--feature-icon-bg);
+    color: var(--primary);
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .rules-icon-box.danger-style {
+    background: rgba(255, 107, 107, 0.12);
+    color: var(--danger);
+  }
+
+  [data-theme="light"] .rules-icon-box.danger-style {
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .rules-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .rules-label {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .rules-value {
+    color: #94a3b8; /* Brighter muted color for dark mode visibility */
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .rules-divider {
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  #uploadRulesModal .card {
+    background: #131722; /* Solid dark background */
+  }
+
+  [data-theme="light"] .rules-value {
+    color: #475569;
+  }
+
+  [data-theme="light"] #uploadRulesModal .card {
+    background: #ffffff;
+  }
+</style>
 <body>
   <!-- The Top Navigation Bar -->
-  <header class="nav">
+  <header class="nav home-nav">
     <a href="#" class="brand">
       <img src="backup-file.png" height="32" width="32" alt="backup" class="brand-img" style="border-radius: 6px;">
       <span>Files on Cloud</span>
@@ -25,9 +130,37 @@
       <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
       <button class="btn btn-ghost" id="loginBtn">Login</button>
       <button class="btn btn-primary" id="signupBtn">Sign Up</button>
+      <span id="usernameLabel" class="auth-user-label" style="display: none;">Hi, User</span>
+      <button class="btn btn-outline" id="logoutBtn" style="display: none;">Logout</button>
       <button class="btn btn-outline" id="dashboardBtn" style="display: none;">Dashboard</button>
     </div>
+
+    <!-- Mobile Hamburger -->
+    <button class="hamburger" id="hamburgerBtn">
+      ☰
+    </button>
   </header>
+
+  <!-- Mobile Sidebar -->
+  <div class="mobile-overlay" id="mobileOverlay"></div>
+
+  <aside class="mobile-menu" id="mobileMenu">
+    <a href="#workspace">Upload</a>
+    <a href="#workspace" data-tab="download">Download</a>
+    <a href="#instructions">Instructions</a>
+
+
+    <button class="btn btn-ghost theme-toggle" aria-label="Toggle Theme" style="padding: 6px;"></button>
+    <button class="btn btn-ghost" id="mobileLoginBtn">Login</button>
+    <button class="btn btn-primary" id="mobileSignupBtn">Sign Up</button>
+    <span id="mobileUsernameLabel" class="auth-user-label" style="display: none;">Hi, User</span>
+    <button class="btn btn-outline" id="mobileLogoutBtn" style="display: none;">Logout</button>
+    <button class="btn btn-outline" id="mobileDashboardBtn" style="display: none;">
+      Dashboard
+    </button>
+
+    
+  </aside>
 
   <!-- Welcome Header (Hero Section) -->
   <section class="hero">
@@ -72,17 +205,31 @@
           </div>
         </label>
 
+        <div id="filePreview" class="file-preview" hidden>
+          <div id="previewContent"></div>
+        </div>
+
         <div class="grid-2">
           <div class="field">
             <span class="field-icon">#</span>
             <input id="codeInput" type="text" inputmode="numeric" maxlength="5" placeholder="Custom 5-digit code (optional)" />
           </div>
-          <div class="field">
+
+          
+          <!-- Password field  with toggle -->
+          <div class="field password-wrapper">
             <span class="field-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </span>
             <input id="passwordInput" type="password" placeholder="Password (optional)" />
+            <button type="button" id="togglePassword" class="toggle-btn" aria-label="Toggle password visibility">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
           </div>
+          
           <div class="field field-full">
             <span class="field-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -131,6 +278,14 @@
           </div>
         </div>
 
+        <div class="result-box" id="shortLinkBox" hidden>
+          <div class="label">Short link</div>
+          <div class="link-row">
+            <div class="link-text" id="shortLinkText"></div>
+            <button class="btn btn-outline btn-sm" id="copyShortLinkBtn">Copy</button>
+          </div>
+        </div>
+
         <div class="result-actions">
           <button class="btn btn-outline btn-block" id="qrToggle">Show QR</button>
           <button class="btn btn-ghost btn-block" id="resetBtn">Upload another</button>
@@ -165,7 +320,10 @@
       <div class="info-box" id="dlInfoBox" hidden>
         <div class="info-name">
           <span id="dlFileName"></span>
-          <span class="locked" id="dlLocked" hidden>🔒 Protected</span>
+          <span class="locked" id="dlLocked" hidden style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Protected
+          </span>
         </div>
         <div class="info-stats">
           <div><strong id="dlSize"></strong><span>Size</span></div>
@@ -184,12 +342,15 @@
   <!-- Helpful Instructions and Features -->
   <section id="instructions" class="features" style="padding-top: 32px;">
     <div class="section-head">
-      <h2>📋 How to Use Files on Cloud</h2>
+      <h2 style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color: var(--primary);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        How to Use Files on Cloud
+      </h2>
       <p class="muted">Everything you need to know about secure file sharing.</p>
     </div>
     <div class="how-grid" style="grid-template-columns: 1fr; border-radius: var(--radius-lg); background: var(--bg); border: 1px solid var(--border); padding: 32px;">
       <ul style="list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 15px; display: flex; flex-direction: column; gap: 16px;">
-        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>🔐 Authentication:</strong> Uploading works without an account. Sign in if you want your files associated with your account and visible in analytics.</span></li>
+        <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Authentication:</strong> Uploading works without an account. Sign in if you want your files associated with your account and visible in analytics.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Upload Files:</strong> Click on the upload area to select your file (maximum 20MB). You can optionally provide a custom 5-digit code, set a password, and choose expiration time.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Password Protection:</strong> Optionally protect your files with a password. Recipients will need the password to download.</span></li>
         <li style="display: flex; gap: 12px;"><span style="color: var(--primary);">▶</span> <span><strong>Expiration:</strong> Files automatically expire and are deleted after the chosen time period (1 hour to 7 days).</span></li>
@@ -235,20 +396,80 @@
 
   <!-- The Upload Rules Information Modal -->
   <div id="uploadRulesModal" class="modal-overlay" hidden style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;">
-    <div class="panel card" style="max-width: 400px; width: 90%; transform: translateY(20px); transition: transform 0.2s ease; margin: 0;">
-      <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
-        <h3 style="margin: 0; font-size: 18px;">Upload rules</h3>
+    <div class="panel card" style="max-width: 400px; width: 90%; transform: translateY(20px); transition: transform 0.2s ease; margin: 0; padding: 28px;">
+      <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Upload Rules</h3>
         <button id="uploadRulesClose" class="btn btn-ghost" style="padding: 4px; font-size: 24px; line-height: 1; border: none; background: transparent; cursor: pointer; color: var(--text);">&times;</button>
       </div>
-      <div style="margin-top: 16px;">
-        <ul style="list-style: none; padding: 0; margin: 0; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 12px;">
-          <li style="display: flex; gap: 8px;"><span style="color: var(--primary);">▶</span> <span><strong>Max file size:</strong> <span id="ruleMaxSize">20 MB</span></span></li>
-          <li style="display: flex; gap: 8px;"><span style="color: var(--primary);">▶</span> <span><strong>Allowed:</strong> <span id="ruleAllowedTypes">All file types except those blocked below</span></span></li>
-          <li style="display: flex; gap: 8px;"><span style="color: var(--danger, #ff4d4d);">▶</span> <span><strong>Blocked:</strong> <span id="ruleBlockedTypes">.exe, .swf, .jar, .msi</span></span></li>
-          <li style="display: flex; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--border);">
-            <span><strong>Security:</strong> <span id="ruleSecurity">Executable installers listed above are blocked by server validation.</span></span>
+      <div>
+        <ul class="rules-list">
+          <!-- Max file size -->
+          <li class="rules-item">
+            <div class="rules-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="rules-content">
+              <span class="rules-label">Max file size</span>
+              <span id="ruleMaxSize" class="rules-value">20 MB</span>
+            </div>
+          </li>
+          <!-- Allowed files -->
+          <li class="rules-item">
+            <div class="rules-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div class="rules-content">
+              <span class="rules-label">Allowed files</span>
+              <span id="ruleAllowedTypes" class="rules-value">All file types except those blocked below</span>
+            </div>
+          </li>
+          <!-- Blocked files -->
+          <li class="rules-item">
+            <div class="rules-icon-box danger-style">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+            </div>
+            <div class="rules-content">
+              <span class="rules-label">Blocked files</span>
+              <span id="ruleBlockedTypes" class="rules-value">.exe, .swf, .jar, .msi</span>
+            </div>
+          </li>
+          <!-- Security note -->
+          <li class="rules-item rules-divider">
+            <div class="rules-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div class="rules-content">
+              <span class="rules-label">Security</span>
+              <span id="ruleSecurity" class="rules-value">Executable installers listed above are blocked by server validation.</span>
+            </div>
           </li>
         </ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="logoutConfirmModal" class="confirm-modal" hidden role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmMessage">
+    <div class="confirm-modal-backdrop"></div>
+    <div class="confirm-modal-card" role="document">
+      <div class="confirm-modal-header">
+        <h3 id="logoutConfirmTitle">Confirm Logout</h3>
+        <button type="button" id="logoutConfirmClose" class="confirm-modal-close" aria-label="Close logout confirmation">&times;</button>
+      </div>
+      <p id="logoutConfirmMessage" class="confirm-modal-message">Are you sure you want to logout?</p>
+      <div class="confirm-modal-actions">
+        <button type="button" id="confirmLogoutBtn" class="btn btn-primary">Yes, Logout</button>
+        <button type="button" id="cancelLogoutBtn" class="btn btn-outline">Cancel</button>
       </div>
     </div>
   </div>
