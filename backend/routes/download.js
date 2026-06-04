@@ -26,11 +26,12 @@ const getClientIP = (req) => {
          'unknown';
 };
 
-// Shared helper: record analytics and stream the file to the client.
+// SHARED HELPER: Optimized via Streams to handle chunked buffering and backpressure
 const serveFile = async (req, res, fileDoc) => {
   const clientIP = getClientIP(req);
   const userAgent = (req.get('User-Agent') || 'unknown').slice(0, 256);
 
+  // 1. Update Download Analytics asynchronously
   await FileRecord.updateOne(
     { code: fileDoc.code },
     {
@@ -44,13 +45,40 @@ const serveFile = async (req, res, fileDoc) => {
     }
   );
 
+  // 2. Sanitize and structure download filename headers
   const nameToDownload = fileDoc.displayName || fileDoc.originalName;
   const safeDownloadName = path.basename(nameToDownload)
     .replace(/[\x00-\x1f\x7f]/g, '')
     .trim() || 'download';
 
   const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-  res.download(filePath, safeDownloadName);
+
+  // 3. Set standard stream-friendly headers for download tracking
+  res.setHeader('Content-Type', fileDoc.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Length', fileDoc.size); // Crucial for showing browser download percentage
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeDownloadName)}"`);
+
+  // 4. Create read stream instead of memory-blocking blocks
+  const fileStream = fs.createReadStream(filePath);
+
+  // Pipe the file chunks straight into the HTTP response object (Handles backpressure natively)
+  fileStream.pipe(res);
+
+  // 5. Stream Pipeline Resiliency: If user cancels/aborts mid-way, close file descriptors immediately
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      fileStream.destroy(); // Hard destroy to prevent resource or file-locking leaks
+      console.log(`[Stream Aborted]: Active download pipeline killed by client for code: ${fileDoc.code}`);
+    }
+  });
+
+  // Handle stream read internal infrastructure failures safely
+  fileStream.on('error', (err) => {
+    console.error('[Stream Ingestion Error]:', err);
+    if (!res.headersSent) {
+      res.status(500).send('<h1>Error occurred during streaming data chunks</h1>');
+    }
+  });
 };
 
 // Download file route (GET) -- shows password form for protected files,
@@ -60,8 +88,6 @@ router.get('/download/:code', async (req, res) => {
     const { code } = req.params;
 
     // Validate code format before using it in any DB query or HTML response.
-    // Codes are always exactly 5 digits; anything else is rejected immediately
-    // to prevent reflected XSS via malformed code values in server-rendered HTML.
     if (!/^\d{5}$/.test(code)) {
       return res.status(400).send('<h1>Invalid request: code must be exactly 5 digits.</h1>');
     }
@@ -85,8 +111,6 @@ router.get('/download/:code', async (req, res) => {
 
     // Check password if file is protected
     if (fileDoc.password) {
-      // Render the password prompt form. The form submits via POST so the
-      // password never appears in the URL, server logs, or browser history.
       return res.send(`
         <!DOCTYPE html>
         <html>
