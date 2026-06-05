@@ -311,6 +311,8 @@
                 }
             });
 
+            // Always calculate storage from the FULL list, not just filtered results
+            updateStorageVisualizer(globalFilesList);
             renderFiles(filteredFiles);
         }
 
@@ -321,8 +323,8 @@
         if (sortElement) sortElement.addEventListener('change', processSearchAndSort);
 
         function renderFiles(files) {
-            updateStorageVisualizer(files);
-
+            // Storage quota always reflects ALL files, not just the filtered/sorted view
+            // updateStorageVisualizer is called from processSearchAndSort with globalFilesList
             const masterCheck = document.getElementById('selectAllCheckbox');
             if(masterCheck) masterCheck.checked = false;
 

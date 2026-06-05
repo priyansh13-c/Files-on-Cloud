@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const mongoose = require('mongoose');
 const FileRecord = require('../models/File');
 const validateFileSignature = require("../utils/validateSignature");
 
@@ -132,6 +133,19 @@ const uploadFile = async (req, res) => {
     let code = requestedCode || generateCode();
 
     for (let attempt = 0; attempt < MAX_CODE_RETRIES; attempt++) {
+      // req.user here is the raw JWT payload (decoded manually above),
+      // so it has a `userId` string, not a Mongoose ObjectId. We must
+      // cast it explicitly so the stored value matches the ObjectId type
+      // declared in the schema and queried by getMyFiles via req.user._id.
+      let uploadedById = null;
+      if (req.user) {
+        const rawId = req.user._id || req.user.userId;
+        try {
+          uploadedById = new mongoose.Types.ObjectId(rawId);
+        } catch {
+          uploadedById = null;
+        }
+      }
       const newFileRecord = new FileRecord({
         code,
         originalName: sanitizedOriginalName,
@@ -141,7 +155,7 @@ const uploadFile = async (req, res) => {
         size: req.file.size,
         password: password || undefined,
         expiresAt,
-        uploadedBy: req.user ? (req.user._id || req.user.userId) : null
+        uploadedBy: uploadedById
       });
 
       try {
@@ -266,9 +280,11 @@ const getAnalytics = async (req, res) => {
 };
 
 // Get all files uploaded by current user
-const getMyFiles =  async (req, res) => {
+// req.user is the full Mongoose User document set by the auth middleware,
+// so req.user._id is already a proper ObjectId — use it directly.
+const getMyFiles = async (req, res) => {
   try {
-    const files = await FileRecord.find({ uploadedBy: req.user._id || req.user.userId })
+    const files = await FileRecord.find({ uploadedBy: req.user._id })
       .select('-__v -password') // exclude password hash and version
       .sort({ uploadDate: -1 });
     res.json({ files });
