@@ -8,7 +8,6 @@ const sendEmail = require("../utils/sendEmail");
 const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    console.log("Signup request body:", req.body);
 
     // Validation
     if (!username || !email || !password) {
