@@ -15,8 +15,12 @@ const signup = async (req, res) => {
       return res.status(400).json({ error: 'All fields are required.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+    // Password complexity validation: min 8 chars, uppercase, lowercase, digit, special char
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters with uppercase, lowercase, digit, and special character.'
+      });
     }
 
     // Check if user already exists
@@ -244,11 +248,12 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    // Password complexity validation: min 8 chars, uppercase, lowercase, digit, special char
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
+    if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        success : false,
-        message:
-          "Password must be at least 6 characters long"
+        success: false,
+        message: "Password must be at least 8 characters with uppercase, lowercase, digit, and special character."
       });
     }
 
