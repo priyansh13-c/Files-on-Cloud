@@ -8,11 +8,16 @@ const sendEmail = require("../utils/sendEmail");
 const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    console.log("Signup request body:", req.body);
 
     // Validation
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    // Email format validation
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
     if (password.length < 6) {
@@ -159,6 +164,15 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({
         success : false,
         message: "Email is required"
+      });
+    }
+
+    // Email format validation
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address."
       });
     }
 
