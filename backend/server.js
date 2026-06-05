@@ -81,13 +81,17 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Auth-specific rate limiter to prevent brute-force attacks on login/signup.
+// Enforces maximum 5 failed authentication attempts per IP per 15-minute window.
+// Successful requests are excluded from the count (skipSuccessfulRequests: true)
+// to avoid locking out legitimate users during normal operation.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 auth attempts per windowMs
+  max: 5, // limit each IP to 5 failed auth attempts per windowMs
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
+  skipSuccessfulRequests: true, // only count failed requests
 });
 
 app.use(limiter);
