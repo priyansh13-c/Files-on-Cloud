@@ -60,15 +60,40 @@ const serveFile = async (req, res, fileDoc) => {
     }
   );
 
-  // const nameToDownload = fileDoc.displayName || fileDoc.originalName;
-  // const safeDownloadName = path.basename(nameToDownload)
-  //   .replace(/[\x00-\x1f\x7f]/g, '')
-  //   .trim() || 'download';
+  // 2. Sanitize and structure download filename headers
+  const nameToDownload = fileDoc.displayName || fileDoc.originalName;
+  const safeDownloadName = path.basename(nameToDownload)
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .trim() || 'download';
 
-  // const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
-  // res.download(filePath, safeDownloadName);
+  const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
 
-  return res.redirect(fileDoc.cloudinaryUrl);
+  // 3. Set dynamic chunk-friendly headers for download mapping
+  res.setHeader('Content-Type', fileDoc.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Length', fileDoc.size); // Crucial for browser progress bars
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeDownloadName)}"`);
+
+  // 4. Create readable stream to keep V8 heap memory minimal (<2MB footprint)
+  const fileStream = fs.createReadStream(filePath);
+
+  // Pipe the file chunks straight into the HTTP response object (Handles backpressure)
+  fileStream.pipe(res);
+
+  // 5. Stream Pipeline Resiliency: Clear file handlers instantly on manual client cancellation
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      fileStream.destroy(); // Prevent memory/descriptor leaks
+      console.log(`[Stream Aborted]: Active download pipeline killed by client for code: ${fileDoc.code}`);
+    }
+  });
+
+  // Track and log stream failures safely
+  fileStream.on('error', (err) => {
+    console.error('[Stream Ingestion Error]:', err);
+    if (!res.headersSent) {
+      res.status(500).send('<h1>Error occurred during streaming data chunks</h1>');
+    }
+  });
 };
 
 // Download file route handler (GET)
@@ -89,8 +114,11 @@ const downloadFile = async (req, res) => {
       return res.status(410).send('<h1>File has expired and been deleted</h1>');
     }
 
-    if (!fileDoc.cloudinaryUrl) {
-      return res.status(404).send('<h1>File missing from storage</h1>');
+    const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
+    try {
+      await fs.promises.access(filePath);
+    } catch (error) {
+      return res.status(404).send('<h1>File missing from server</h1>');
     }
 
     if (fileDoc.password) {
@@ -151,8 +179,11 @@ const verifyPassword = async (req, res) => {
       return res.status(410).send('<h1>File has expired and been deleted</h1>');
     }
 
-    if (!fileDoc.cloudinaryUrl) {
-      return res.status(404).send('<h1>File missing from storage</h1>');
+    const filePath = path.join(__dirname, '..', '..', 'uploads', fileDoc.filename);
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      return res.status(404).send('<h1>File missing from server</h1>');
     }
 
     if (!fileDoc.password) {
